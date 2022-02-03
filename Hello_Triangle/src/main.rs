@@ -88,14 +88,25 @@ fn main() {
             let coords = index_to_coords(count, HEIGHT, WIDTH);
             count+=1;
             let coords = glam::vec2(coords.0 as f32, coords.1 as f32);
-            let side = edge_function(edge.0, edge.1, coords);
 
-            if(side >= 0.0)
-            {
-                *i = to_argb8(255, 255, 0, 0);   
-            }else {
-                *i = to_argb8(255, 0, 255, 0);
-            }
+            let m0 = edge_function(coords, triangle[0], triangle[1]);
+            let m1 = edge_function(coords, triangle[1], triangle[2]);
+            let m2 = edge_function(coords, triangle[2], triangle[0]);
+
+            *i = to_argb8(
+                255, 
+                (m2 * 255.0) as u8,
+                (m0 * 255.0) as u8,
+                (m1 * 255.0) as u8,
+            );   
+
+
+            // if(side >= 0.0)
+            // {
+            //     *i = to_argb8(255, 255, 0, 0);   
+            // }else {
+            //     *i = to_argb8(255, 0, 255, 0);
+            // }
         }
 
         count = 0;
