@@ -1,5 +1,4 @@
 extern crate minifb;
-//use core::prelude::v1;
 use std::vec;
 use std::path::Path;
 
@@ -7,105 +6,11 @@ use glam::Vec3Swizzles;
 use glam::{Vec2, Vec3, Vec3A, Vec4};
 use minifb::{Key, Window, WindowOptions};
 
-pub mod utils;
-pub use utils::*;
-pub mod geometry;
-pub use geometry::Vertex;
-pub use geometry::Triangle;
-pub use geometry::Point;
-pub mod texture;
-pub use texture::Texture;
+use Hello_Triangle::*;
 
 const WIDTH: usize = 500;
 const HEIGHT: usize = 500;
 
-pub fn Funky_Triangle(tri: Triangle, buffer: &mut Vec<u32>)
-{
-    let mut m0 : f32 = 0.0;
-    let mut m1 : f32 = 0.0;
-    let mut m2 : f32 = 0.0;
-
-    for (i, pixel) in buffer.iter_mut().enumerate() 
-    {
-        let coords = index_to_coords(i, HEIGHT);
-        let coords = glam::vec2(coords.0 as f32, coords.1 as f32);
-        m0 = edge_function(tri.vert0.position.xy(), tri.vert1.position.xy(), coords);
-        m1 = edge_function(tri.vert1.position.xy(), tri.vert2.position.xy(), coords);
-        m2 = edge_function(tri.vert2.position.xy(), tri.vert0.position.xy(), coords);
-
-        *pixel = to_argb8(
-            255, 
-            (m2*255.0) as u8, 
-            (m0*255.0) as u8, 
-            (m1*255.0) as u8,
-        );
-    }
-}
-
-pub fn Render_Depth(tri: Triangle, buffer: &mut Vec<u32>, z_buffer: &mut Vec<f32>)
-{
-    for (i, pixel) in buffer.iter_mut().enumerate() 
-    {
-        let coords = index_to_coords(i, HEIGHT);
-        let coords = glam::vec2(coords.0 as f32, coords.1 as f32);
-
-        let area = edge_function(
-            tri.vert0.position.xy(), 
-            tri.vert1.position.xy(), 
-            tri.vert2.position.xy(),
-        );
-
-        if let Some(bary) = Barycentric_Coordinates(
-            coords,
-            tri.vert0.position.xy(),
-            tri.vert1.position.xy(),
-            tri.vert2.position.xy(),
-            area,
-        ) {
-            let depth = bary.x * tri.vert0.position.z + bary.y * tri.vert1.position.z + bary.z * tri.vert2.position.z;
-            if depth < z_buffer[i] {
-                z_buffer[i] = depth;
-                *pixel = (-depth * 255.0) as u32; //write to buffer
-
-            }
-        }
-    }
-}
-
-pub fn Raster_Triangle(tri: Triangle, buffer: &mut Vec<u32>, texture: &Texture, z_buffer: &mut Vec<f32>)
-{
-    for (i, pixel) in buffer.iter_mut().enumerate() 
-    {
-        let coords = index_to_coords(i, HEIGHT);
-        //shadowing a variable
-        let coords = glam::vec2(coords.0 as f32, coords.1 as f32) + 0.5;
-        let area = edge_function(
-            tri.vert0.position.xy(), 
-            tri.vert1.position.xy(), 
-            tri.vert2.position.xy(),
-        );
-
-        if let Some(bary) = Barycentric_Coordinates(
-            coords,
-            tri.vert0.position.xy(),
-            tri.vert1.position.xy(),
-            tri.vert2.position.xy(),
-            area,
-        ) {
-            // bary var presumably contains barycentric coordinates of the given coords on the given triangle
-            let depth = bary.x * tri.vert0.position.z + bary.y * tri.vert1.position.z + bary.z * tri.vert2.position.z;
-            if depth < z_buffer[i] {
-                z_buffer[i] = depth;
-                //println!("{}", depth);
-
-                let texCoords = bary.x * tri.vert0.uv + bary.y * tri.vert1.uv + bary.z * tri.vert2.uv;
-                let color = texture.argb_at_uv(texCoords.x, texCoords.y);
-
-                *pixel = color; //write to buffer
-            }
-        }
-    }
-}
 
 fn main() {
     let mut window = Window::new(
@@ -126,10 +31,8 @@ fn main() {
     
     let texture = Texture::Load(Path::new("D:/BUAS/MC/Rust/RasterRusterMC/Hello_Triangle/Assets/bojan.jpg"));
 
-
     let mut redTriangle: bool = true;
     let mut wireFrameRend: bool = false;
-
 
     let vertex0 = Vertex{
         position: glam::vec3(100.0, 100.0, 0.0),
@@ -153,6 +56,7 @@ fn main() {
     };
 
     let mut triangles: [Triangle; 2] = [Triangle::default(); 2];
+
     triangles[0] = Triangle {
         vert0: vertex0,
         vert1: vertex1,
@@ -164,6 +68,9 @@ fn main() {
         vert1: vertex2,
         vert2: vertex3,
     };
+
+    //println!("interpolated verted: {:?}", Lerp(triangles[0].vert0, Lerp(triangles[0].vert1, 0.5)); //explodes
+
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
 

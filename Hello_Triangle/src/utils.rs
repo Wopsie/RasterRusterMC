@@ -1,8 +1,10 @@
-use std::process::Output;
+//use std::process::Output;
 
 use glam::{Vec2, Vec3};
-
-use crate::{Point, HEIGHT};
+//pub mod geometry;
+//pub use geometry::Point;
+//
+use crate::{geometry::Point};
 
 pub fn Barycentric_Coordinates(
     point: Vec2,

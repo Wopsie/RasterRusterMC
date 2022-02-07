@@ -1,6 +1,11 @@
 use glam::{Vec2, Vec3};
 use std::{ops::{Add, Mul, Sub}, f32::MIN_POSITIVE};
 
+pub struct Point {
+    pub x: i32,
+    pub y: i32,
+}
+
 //data struct
 #[derive(Debug, Copy, Clone)]
 pub struct Vertex {
@@ -39,8 +44,8 @@ impl Add for Vertex {
     fn add(self, rhs: Self) -> Self {
         let position = self.position + rhs.position;
         let color = self.color + rhs.color;
-        let texCoord = self.uv + rhs.uv;
-        Self::Construct(position, color, texCoord)
+        let uv = self.uv + rhs.uv;
+        Self::Construct(position, color, uv)
     }
 }
 
@@ -50,19 +55,19 @@ impl Sub for Vertex {
     fn sub(self, rhs: Self) -> Self{
         let position = self.position - rhs.position;
         let color = self.color - rhs.color;
-        let texCoord = self.uv - rhs.uv;
-        Self::Construct(position, color, texCoord)
+        let uv = self.uv - rhs.uv;
+        Self::Construct(position, color, uv)
     }
 }
 
-impl Mul for Vertex{
+impl Mul<f32> for Vertex{
     type Output = Self;
     
-    fn mul(self, rhs:Self) -> Self{
-        let position = self.position * rhs.position;
-        let color = self.color * rhs.color;
-        let texCoord = self.uv * rhs.uv;
-        Self::Construct(position, color, texCoord)
+    fn mul(self, rhs: f32) -> Self{
+        let position = self.position * rhs;
+        let color = self.color * rhs;
+        let uv = self.uv * rhs;
+        Self::Construct(position, color, uv)
     }
 }
 
@@ -94,9 +99,4 @@ impl Default for Triangle {
             vert2: Vertex::default(),
         }
     }
-}
-
-pub struct Point{
-    pub x: i32,
-    pub y: i32,
 }
