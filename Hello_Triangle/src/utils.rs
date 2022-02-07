@@ -1,6 +1,37 @@
+use std::process::Output;
+
 use glam::{Vec2, Vec3};
 
 use crate::{Point, HEIGHT};
+
+pub fn Barycentric_Coordinates(
+    point: Vec2,
+    v0: Vec2,
+    v1: Vec2,
+    v2: Vec2,
+    area: f32,
+) -> Option<Vec3> {
+    let m0 = edge_function(point, v1, v2);
+    let m1 = edge_function(point, v2, v0);
+    let m2 = edge_function(point, v0, v1);
+
+    let a = 1.0 / area;
+    if m0 >= 0.0 && m1 >= 0.0 && m2 >= 0.0 {
+        Some(glam::vec3(m0 * a, m1 * a, m2 * a))
+    } else {
+        None
+    }
+}
+
+pub fn Lerp<T>(start: T, end: T, alpha: f32) -> T 
+where //wtf?
+    T: std::ops::Sub<Output = T>
+        + std::ops::Mul<f32, Output = T>
+        + std::ops::Add<Output = T>
+        + Copy,
+{
+    start + (end - start) * alpha
+}
 
 //actually just cross product? or determinant?
 pub fn edge_function(v0: Vec2, v1: Vec2, p: Vec2) -> f32 {

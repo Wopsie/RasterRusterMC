@@ -6,18 +6,28 @@ use std::{ops::{Add, Mul, Sub}, f32::MIN_POSITIVE};
 pub struct Vertex {
     pub position: Vec3,
     pub color: Vec3,
-    pub texCoord: Vec2,
+    pub uv: Vec2,
 }
 
 //implementation, bind functions to Vertex data struct
 impl Vertex 
 {
     //return self, like a constructor kindof
-    pub fn Construct(position: Vec3, color: Vec3, texCoord: Vec2) -> Self{
+    pub fn Construct(position: Vec3, color: Vec3, uv: Vec2) -> Self{
         Self {
             position,
             color,
-            texCoord,
+            uv,
+        }
+    }
+}
+
+impl Default for Vertex {
+    fn default() -> Self {
+        Self {
+            position: Vec3::new(0.0, 0.0, 0.0),
+            color: Vec3::new(0.0, 0.0, 0.0),
+            uv: Vec2::new(1.0, 1.0),
         }
     }
 }
@@ -29,7 +39,7 @@ impl Add for Vertex {
     fn add(self, rhs: Self) -> Self {
         let position = self.position + rhs.position;
         let color = self.color + rhs.color;
-        let texCoord = self.texCoord + rhs.texCoord;
+        let texCoord = self.uv + rhs.uv;
         Self::Construct(position, color, texCoord)
     }
 }
@@ -40,7 +50,7 @@ impl Sub for Vertex {
     fn sub(self, rhs: Self) -> Self{
         let position = self.position - rhs.position;
         let color = self.color - rhs.color;
-        let texCoord = self.texCoord - rhs.texCoord;
+        let texCoord = self.uv - rhs.uv;
         Self::Construct(position, color, texCoord)
     }
 }
@@ -51,7 +61,7 @@ impl Mul for Vertex{
     fn mul(self, rhs:Self) -> Self{
         let position = self.position * rhs.position;
         let color = self.color * rhs.color;
-        let texCoord = self.texCoord * rhs.texCoord;
+        let texCoord = self.uv * rhs.uv;
         Self::Construct(position, color, texCoord)
     }
 }
@@ -71,6 +81,16 @@ impl Triangle
             vert0: v0,
             vert1: v1,
             vert2: v2,
+        }
+    }
+}
+
+impl Default for Triangle {
+    fn default() -> Self {
+        Self {
+            vert0: Vertex::default(),
+            vert1: Vertex::default(),
+            vert2: Vertex::default(),
         }
     }
 }
