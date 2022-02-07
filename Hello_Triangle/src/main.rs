@@ -19,13 +19,13 @@ pub use texture::Texture;
 const WIDTH: usize = 500;
 const HEIGHT: usize = 500;
 
-pub fn Raster_Triangle(tri: &Triangle, buffer: &mut Vec<u32>, texture: &Texture, z_buffer: &mut Vec<f32>)
+pub fn Raster_Triangle(tri: Triangle, buffer: &mut Vec<u32>, texture: &Texture, z_buffer: &mut Vec<f32>)
 {
     for (i, pixel) in buffer.iter_mut().enumerate() 
     {
         let coords = index_to_coords(i, HEIGHT);
         //shadowing a variable
-        let coords = glam::vec2(coords.0 as f32, coords.1 as f32);
+        let coords = glam::vec2(coords.0 as f32, coords.1 as f32) + 0.5;
         let area = edge_function(
             tri.vert0.position.xy(), 
             tri.vert1.position.xy(), 
@@ -67,7 +67,7 @@ fn main() {
     // Limit to max ~60 fps update rate
     window.limit_update_rate(Some(std::time::Duration::from_micros(16600)));
 
-    let mut buffer: Vec<u32> = vec![to_argb8(255, 255, 0, 0); WIDTH * HEIGHT];
+    let mut buffer: Vec<u32> = vec![to_argb8(255, 0, 0, 0); WIDTH * HEIGHT];
     let mut z_buffer = vec![f32::INFINITY; WIDTH * HEIGHT];
     
     let texture = Texture::Load(Path::new("D:/BUAS/MC/Rust/RasterRusterMC/Hello_Triangle/Assets/bojan.jpg"));
@@ -79,12 +79,12 @@ fn main() {
     let vertex0 = Vertex{
         position: glam::vec3(100.0, 100.0, 0.0),
         color: glam::vec3(1.0, 0.0, 0.0),
-        uv: glam::vec2(1.0, 1.0),
+        uv: glam::vec2(0.0, 0.0),
     };
     let vertex1 = Vertex{
         position: glam::vec3(100.0, 400.0, 0.0),
         color: glam::vec3(0.0, 1.0, 0.0),
-        uv: glam::vec2(1.0, 1.0),
+        uv: glam::vec2(0.0, 1.0),
     };
     let vertex2 = Vertex {
         position: glam::vec3(400.0, 400.0, 0.0),
@@ -102,15 +102,19 @@ fn main() {
         vert1: vertex1,
         vert2: vertex2,
     };
+
+    let triangle2 = Triangle {
+        vert0: vertex0,
+        vert1: vertex2,
+        vert2: vertex3,
+    };
     
     //let triang = Triangle::default();
 
     //let triangles: Vec<Triangle> = vec![Triangle::default(); 2];
     //let triangles: Vec<Triangle> = vec![triangle1; 2];
 
-    let mut triangles: [Triangle; 1] = [triangle1; 1];
-
-
+    //let mut triangles: [Triangle; 1] = [triangle1; 1];
 
     // triangles[1] = Triangle {
     //     vert0: vertex0,
@@ -119,8 +123,9 @@ fn main() {
     // };
 
 
-    Raster_Triangle(&triangles[0], &mut buffer, &texture, &mut z_buffer);
-    //Raster_Triangle(triangles[1], &mut buffer, &texture, &mut z_buffer);
+    //Raster_Triangle(&triangles[0], &mut buffer, &texture, &mut z_buffer);
+    Raster_Triangle(triangle1, &mut buffer, &texture, &mut z_buffer);
+    Raster_Triangle(triangle2, &mut buffer, &texture, &mut z_buffer);
 
 
     while window.is_open() && !window.is_key_down(Key::Escape) {

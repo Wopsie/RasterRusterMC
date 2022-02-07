@@ -66,6 +66,7 @@ impl Mul for Vertex{
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct Triangle {
     //pub vertices: Vec<Vertex>,
     pub vert0: Vertex,
