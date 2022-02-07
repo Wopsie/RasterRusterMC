@@ -62,3 +62,20 @@ pub struct Triangle {
     pub vert1: Vertex,
     pub vert2: Vertex,
 }
+
+impl Triangle 
+{
+    pub fn Construct(v0: Vertex, v1: Vertex, v2: Vertex) -> Self
+    {
+        Self{
+            vert0: v0,
+            vert1: v1,
+            vert2: v2,
+        }
+    }
+}
+
+pub struct Point{
+    pub x: i32,
+    pub y: i32,
+}

@@ -1,5 +1,7 @@
 use glam::{Vec2, Vec3};
 
+use crate::{Point, HEIGHT};
+
 //actually just cross product? or determinant?
 pub fn edge_function(v0: Vec2, v1: Vec2, p: Vec2) -> f32 {
     (p.x - v0.x) * (v1.y - v0.y) - (p.y - v0.y) * (v1.x - v0.x)
@@ -26,59 +28,51 @@ pub fn to_argb8(a: u8, r: u8, g: u8, b: u8) -> u32 {
          //need to use "unsafe" for that
 }
 
-pub fn bresenham_function(vert0: Vec2, vert1: Vec2, pixel: Vec2) -> f32
+pub fn bresenham_function(vert0: Vec2, vert1: Vec2) -> Vec<Point>
+//pub fn bresenham_function(vert0: Vec2, vert1: Vec2, pixel: Vec2) -> f32
 {
-    //let newSlope = 2.0 * (v1.y - v0.y);
-    //let slopeErrorNew = newSlope - (v1.x - v0.x);
+    let mut coords: Vec<Point> = vec![];
 
-    let deltax = vert1.x - vert0.x;
-    let deltay = vert1.y - vert0.y;
+    //let i0 = coords_to_index(vert0.x as usize, vert0.y as usize, HEIGHT);
+    //let i1 = coords_to_index(vert1.x as usize, vert1.y as usize, HEIGHT);
 
-    let twoDeltaY = 2.0 * deltay;
-    let twoDyDx = 2.0 * (deltay - deltax);
+    //let v0ScreenCoords = index_to_coords(i0, HEIGHT);
+    //let v1ScreenCoords = index_to_coords(i1, HEIGHT);
+    //Maybe print this to see if the coords are actually different
 
-    let error = deltax * 0.5;
-    let ystep = 1;
+    //these should be in screen coordinates. i32s
+    let deltax: i32 = i32::abs(vert1.x as i32 - vert0.x as i32);
+    let deltay: i32 = i32::abs(vert1.y as i32 - vert0.y as i32);
 
-    // let xPos = 0.0;
-    // let yPos = 0.0;
+    let stepX: i32 = if vert0.x < vert1.x {1}else{-1};
+    let stepY: i32 = if vert0.y < vert1.y {1}else{-1};
 
-    if vert0.x > vert1.x
-    {
-        // xPos = vert1.x;
-        // yPos = vert1.y;
-        0.0
-    }else {
-        1.0
+    let mut currX: i32 = vert0.x as i32;
+    let mut currY: i32 = vert0.y as i32;
+
+    let mut error = if deltax > deltay {deltax} else {-deltay} /2;
+
+    loop {
+        coords.push(Point{x: currX, y: currY});
+
+        if currX == vert1.x as i32 && currY == vert1.y as i32
+        {
+            break;
+        }
+
+        let error2: i32 = error;
+        if error2 > -deltax
+        {
+            error -= deltay;
+            currX += stepX;
+        }
+
+        if error2 < deltay
+        {
+            error += deltay;
+            currY += stepY;
+        }
     }
 
-
-    // if vert1.y < vert0.y
-    // {
-    //     ystep = -1;
-    // }
-
-    // int dx = abs(xa - xb), dy = abs(ya - yb);
-    // int p = 2 * dy - dx;
-    // int twoDy = 2 * dy, twoDyDx = 2 * (dy - dx);
-    // int x, y, xEnd;
-
-    // if (xa > xb)
-    // {
-    //     x = xb;
-    //     y = yb;
-    //     xEnd = xa;
-    // }
-    // else
-    // {
-    //     x = xa;
-    //     y = ya;
-    //     xEnd = xb;
-    // }
-    // setPixel(x, y);
-
-    //loop
-    
-
-    //(((v1.y - v0.y) / (v1.x - v0.x)) * (p.x - v0.x) + v0.y)
+    coords
 }

@@ -1,4 +1,6 @@
 extern crate minifb;
+use core::prelude::v1;
+
 use glam::Vec3Swizzles;
 use glam::{Vec2, Vec3, Vec3A, Vec4};
 use minifb::{Key, Window, WindowOptions};
@@ -8,26 +10,27 @@ pub use utils::*;
 pub mod geometry;
 pub use geometry::Vertex;
 pub use geometry::Triangle;
+pub use geometry::Point;
 
 const WIDTH: usize = 500;
 const HEIGHT: usize = 500;
 
-pub fn Raster_Triangle(tri: Triangle, buffer: &mut Vec<u32>)
-{
-    for (i, pixel) in buffer.iter_mut().enumerate() 
-    {
-        let coords = index_to_coords(i, HEIGHT);
-        //shadowing a variable
-        let coords = glam::vec2(coords.0 as f32, coords.1 as f32);
-        let area = edge_function(
-            tri.vert0.position.xy(), 
-            tri.vert1.position.xy(), 
-            tri.vert2.position.xy(),
-        );
+// pub fn Raster_Triangle(tri: Triangle, buffer: &mut Vec<u32>)
+// {
+//     for (i, pixel) in buffer.iter_mut().enumerate() 
+//     {
+//         let coords = index_to_coords(i, HEIGHT);
+//         //shadowing a variable
+//         let coords = glam::vec2(coords.0 as f32, coords.1 as f32);
+//         let area = edge_function(
+//             tri.vert0.position.xy(), 
+//             tri.vert1.position.xy(), 
+//             tri.vert2.position.xy(),
+//         );
 
-        //if let Some(bary) = Barycentric_Coordinates()
-    }
-}
+//         //if let Some(bary) = Barycentric_Coordinates()
+//     }
+// }
 
 fn main() {
     let mut buffer: Vec<u32> = vec![to_argb8(255, 255, 0, 0); WIDTH * HEIGHT];
@@ -36,7 +39,7 @@ fn main() {
     let mut wireFrameRend: bool = false;
 
     let mut window = Window::new(
-        "Test - ESC to exit",
+        "Test - Do not press 'W'",
         WIDTH,
         HEIGHT,
         WindowOptions::default(),
@@ -45,11 +48,6 @@ fn main() {
         panic!("{}", e);
     });
 
-    let triangle = [
-        glam::vec2(100.0, 100.0),
-        glam::vec2(250.0, 400.0),
-        glam::vec2(400.0, 100.0),
-    ];
 
     let vertex0 = Vertex{
         position: glam::vec3(100.0, 100.0, 0.0),
@@ -73,9 +71,22 @@ fn main() {
         vert2: vertex2,
     };
 
+    //let mut triangles = vec![0; 2];
+    //triangles.push(triangle1);
+
+    let mut triangles: [Triangle; 1] = [triangle1; 1];
+
+    triangles[0] = Triangle {
+        vert0: vertex0,
+        vert1: vertex1,
+        vert2: vertex2,
+    };
+
+
     let mut count: usize = 0;
     // Limit to max ~60 fps update rate
     window.limit_update_rate(Some(std::time::Duration::from_micros(16600)));
+
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
 
@@ -88,27 +99,21 @@ fn main() {
             wireFrameRend = false;
         }
 
+        let mut points: Vec<Point> = Vec::new();
+
 
         if wireFrameRend
         {
-        //     // do bresenham here
+            //     // do bresenham here
+            for i in triangles.iter() {
+                points.append(&mut bresenham_function(i.vert0.position.xy(), i.vert1.position.xy()));
+                points.append(&mut bresenham_function(i.vert1.position.xy(), i.vert2.position.xy()));
+                points.append(&mut bresenham_function(i.vert2.position.xy(), i.vert0.position.xy()));
 
-        //     // buffer is linear u32 array of size width * height
-        //     // should find screen space coords of vertices, connect the dots
+            }
 
-        //     let vert0 = triangle[0];
-        //     let vert1 = triangle[1];
-        //     let vert2 = triangle[2];
-
-        //     //write to buffer
-        //     let deltax = vert1.x - vert0.x;
-        //     let deltay = vert1.y - vert0.y;
-        //     let error = deltax * 0.5;
-        //     let ystep = 1;
-        //     continue;
-
-        //     pass mutable reference to bresenham function? WIP
-        }
+            //     pass mutable reference to bresenham function? WIP
+        } //else do buffer loop
 
         for i in buffer.iter_mut() {
             *i = 0; //screen clear
@@ -124,15 +129,35 @@ fn main() {
             
             if !wireFrameRend
             {
-                m0 = edge_function(triangle1.vert0.position.xy(), triangle1.vert1.position.xy(), coords);
-                m1 = edge_function(triangle1.vert1.position.xy(), triangle1.vert2.position.xy(), coords);
-                m2 = edge_function(triangle1.vert2.position.xy(), triangle1.vert0.position.xy(), coords);
+                m0 = edge_function(triangles[0].vert0.position.xy(), triangles[0].vert1.position.xy(), coords);
+                m1 = edge_function(triangles[0].vert1.position.xy(), triangles[0].vert2.position.xy(), coords);
+                m2 = edge_function(triangles[0].vert2.position.xy(), triangles[0].vert0.position.xy(), coords);
             } else {
                 //do bresenham here
-                // m0 = bresenham_function(triangle[0], triangle[1], coords);
-                // m1 = bresenham_function(triangle[1], triangle[2], coords);
-                // m2 = bresenham_function(triangle[2], triangle[0], coords);
+
+                //m0 = bresenham_function(triangles[0].vert0.position.xy(), triangles[0].vert1.position.xy(), coords);
+                //m1 = bresenham_function(triangles[0].vert1.position.xy(), triangles[0].vert2.position.xy(), coords);
+                //m2 = bresenham_function(triangles[0].vert2.position.xy(), triangles[0].vert0.position.xy(), coords);
                 //become the lines, not the edge, does not get filled
+
+                //test against contents of points vector
+                
+                //this is crashes
+                for point in points.iter() {
+                    let ip = coords_to_index(point.x as usize, point.y as usize, HEIGHT);
+                    
+                    let is_point_in_line = points.iter().any(| point| ip == count);
+
+                    if is_point_in_line{
+                        m0 = 1.0;
+                        m1 = 1.0;
+                        m2 = 1.0;
+                    }else {
+                        m0 = 0.0;
+                        m1 = 0.0;
+                        m2 = 0.0;
+                    }
+                }
             }
 
             if !redTriangle {
@@ -147,6 +172,7 @@ fn main() {
             }
         }
         count = 0;
+
 
         // We unwrap here as we want this code to exit if it fails. Real applications may want to handle this in a different way
         window.update_with_buffer(&buffer, WIDTH, HEIGHT).unwrap();
