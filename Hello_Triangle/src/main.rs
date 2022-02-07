@@ -19,6 +19,59 @@ pub use texture::Texture;
 const WIDTH: usize = 500;
 const HEIGHT: usize = 500;
 
+pub fn Funky_Triangle(tri: Triangle, buffer: &mut Vec<u32>)
+{
+    let mut m0 : f32 = 0.0;
+    let mut m1 : f32 = 0.0;
+    let mut m2 : f32 = 0.0;
+
+    for (i, pixel) in buffer.iter_mut().enumerate() 
+    {
+        let coords = index_to_coords(i, HEIGHT);
+        let coords = glam::vec2(coords.0 as f32, coords.1 as f32);
+        m0 = edge_function(tri.vert0.position.xy(), tri.vert1.position.xy(), coords);
+        m1 = edge_function(tri.vert1.position.xy(), tri.vert2.position.xy(), coords);
+        m2 = edge_function(tri.vert2.position.xy(), tri.vert0.position.xy(), coords);
+
+        *pixel = to_argb8(
+            255, 
+            (m2*255.0) as u8, 
+            (m0*255.0) as u8, 
+            (m1*255.0) as u8,
+        );
+    }
+}
+
+pub fn Render_Depth(tri: Triangle, buffer: &mut Vec<u32>, z_buffer: &mut Vec<f32>)
+{
+    for (i, pixel) in buffer.iter_mut().enumerate() 
+    {
+        let coords = index_to_coords(i, HEIGHT);
+        let coords = glam::vec2(coords.0 as f32, coords.1 as f32);
+
+        let area = edge_function(
+            tri.vert0.position.xy(), 
+            tri.vert1.position.xy(), 
+            tri.vert2.position.xy(),
+        );
+
+        if let Some(bary) = Barycentric_Coordinates(
+            coords,
+            tri.vert0.position.xy(),
+            tri.vert1.position.xy(),
+            tri.vert2.position.xy(),
+            area,
+        ) {
+            let depth = bary.x * tri.vert0.position.z + bary.y * tri.vert1.position.z + bary.z * tri.vert2.position.z;
+            if depth < z_buffer[i] {
+                z_buffer[i] = depth;
+                *pixel = (-depth * 255.0) as u32; //write to buffer
+
+            }
+        }
+    }
+}
+
 pub fn Raster_Triangle(tri: Triangle, buffer: &mut Vec<u32>, texture: &Texture, z_buffer: &mut Vec<f32>)
 {
     for (i, pixel) in buffer.iter_mut().enumerate() 
@@ -43,7 +96,8 @@ pub fn Raster_Triangle(tri: Triangle, buffer: &mut Vec<u32>, texture: &Texture, 
             let depth = bary.x * tri.vert0.position.z + bary.y * tri.vert1.position.z + bary.z * tri.vert2.position.z;
             if depth < z_buffer[i] {
                 z_buffer[i] = depth;
-                
+                //println!("{}", depth);
+
                 let texCoords = bary.x * tri.vert0.uv + bary.y * tri.vert1.uv + bary.z * tri.vert2.uv;
                 let color = texture.argb_at_uv(texCoords.x, texCoords.y);
 
@@ -72,6 +126,7 @@ fn main() {
     
     let texture = Texture::Load(Path::new("D:/BUAS/MC/Rust/RasterRusterMC/Hello_Triangle/Assets/bojan.jpg"));
 
+
     let mut redTriangle: bool = true;
     let mut wireFrameRend: bool = false;
 
@@ -97,48 +152,48 @@ fn main() {
         uv: glam::vec2(1.0, 0.0),
     };
 
-    let triangle1 = Triangle {
+    let mut triangles: [Triangle; 2] = [Triangle::default(); 2];
+    triangles[0] = Triangle {
         vert0: vertex0,
         vert1: vertex1,
         vert2: vertex2,
     };
 
-    let triangle2 = Triangle {
+    triangles[1] = Triangle {
         vert0: vertex0,
         vert1: vertex2,
         vert2: vertex3,
     };
-    
-    //let triang = Triangle::default();
-
-    //let triangles: Vec<Triangle> = vec![Triangle::default(); 2];
-    //let triangles: Vec<Triangle> = vec![triangle1; 2];
-
-    //let mut triangles: [Triangle; 1] = [triangle1; 1];
-
-    // triangles[1] = Triangle {
-    //     vert0: vertex0,
-    //     vert1: vertex2,
-    //     vert2: vertex3,
-    // };
-
-
-    //Raster_Triangle(&triangles[0], &mut buffer, &texture, &mut z_buffer);
-    Raster_Triangle(triangle1, &mut buffer, &texture, &mut z_buffer);
-    Raster_Triangle(triangle2, &mut buffer, &texture, &mut z_buffer);
-
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
 
+        //may need a screen clear
+        clear_buffer(&mut buffer, 0);
+        clear_buffer(&mut z_buffer, f32::INFINITY);
+
         if window.is_key_down(Key::Space) {
             redTriangle = true;
-        } else if window.is_key_down(Key::W) {
+        } else if window.is_key_down(Key::D) {
             wireFrameRend = true;
         } else {
             redTriangle = false;
             wireFrameRend = false;
         }
         
+        if redTriangle 
+        {
+            Funky_Triangle(triangles[0], &mut buffer);
+            Funky_Triangle(triangles[1], &mut buffer);
+        } else if wireFrameRend {
+            //Render_Depth(triangles[0], &mut buffer, &mut z_buffer);
+            //Render_Depth(triangles[1], &mut buffer, &mut z_buffer);
+            println!("Doesnt work");
+        } else {
+            Raster_Triangle(triangles[0], &mut buffer, &texture, &mut z_buffer);
+            Raster_Triangle(triangles[1], &mut buffer, &texture, &mut z_buffer);
+            
+        }
+
         // We unwrap here as we want this code to exit if it fails. Real applications may want to handle this in a different way
         window.update_with_buffer(&buffer, WIDTH, HEIGHT).unwrap();
     }

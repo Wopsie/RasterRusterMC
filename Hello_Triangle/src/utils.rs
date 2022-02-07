@@ -59,6 +59,13 @@ pub fn to_argb8(a: u8, r: u8, g: u8, b: u8) -> u32 {
          //need to use "unsafe" for that
 }
 
+pub fn clear_buffer<T>(buffer: &mut Vec<T>, value: T)
+where
+    T: Copy,
+{
+    buffer.iter_mut().map(|x| *x = value).count();
+}
+
 pub fn bresenham_function(vert0: Vec2, vert1: Vec2) -> Vec<Point>
 //pub fn bresenham_function(vert0: Vec2, vert1: Vec2, pixel: Vec2) -> f32
 {
