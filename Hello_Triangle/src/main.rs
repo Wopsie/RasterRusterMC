@@ -36,7 +36,7 @@ fn main() {
     let aspect_ratio = WIDTH as f32 / HEIGHT as f32;
     let camera = Camera {
         aspect_ratio,
-        transform: Transform::from_translation(glam::vec3(0.0, 0.0, 500.0)),
+        transform: Transform::from_translation(glam::vec3(0.0, 0.0, 8.0)),
         frustum_far: 1000.0,
         ..Default::default()
     };
@@ -49,22 +49,22 @@ fn main() {
     let vertex0 = Vertex{
         position: glam::vec3(-2.0, -2.0, 0.0),
         color: glam::vec3(1.0, 0.0, 0.0),
-        uv: glam::vec2(0.0, 0.0),
+        uv: glam::vec2(0.0, 1.0),
     };
     let vertex1 = Vertex{
         position: glam::vec3(-2.0, 2.0, 0.0),
         color: glam::vec3(0.0, 1.0, 0.0),
-        uv: glam::vec2(0.0, 1.0),
+        uv: glam::vec2(0.0, 0.0),
     };
     let vertex2 = Vertex {
         position: glam::vec3(2.0, 2.0, 0.0),
         color: glam::vec3(0.0, 0.0, 1.0),
-        uv: glam::vec2(1.0, 1.0),
+        uv: glam::vec2(1.0, 0.0),
     };
     let vertex3 = Vertex {
         position: glam::vec3(2.0, -2.0, 0.0),
         color: glam::vec3(0.0, 1.0, 1.0),
-        uv: glam::vec2(1.0, 0.0),
+        uv: glam::vec2(1.0, 1.0),
     };
 
     let mut triangles: [Triangle; 2] = [Triangle::default(); 2];
@@ -82,17 +82,19 @@ fn main() {
     };
 
     //println!("interpolated verted: {:?}", Lerp(triangles[0].vert0, Lerp(triangles[0].vert1, 0.5)); //explodes
-    let trianglesGood = vec![glam::uvec3(0,1,2), glam::uvec3(0,2,3)];
+    let trianglesGood = vec![glam::uvec3(2,1,0), glam::uvec3(3,2,0)];
     let verticesGood = vec![vertex0, vertex1, vertex2, vertex3];
 
     let mut mesh = Mesh::new();
     mesh.add_section_from_vertices(& trianglesGood, & verticesGood);
 
-    while window.is_open() && !window.is_key_down(Key::Escape) {
+    let mut rot = 0.0;
 
-        //may need a screen clear
-        clear_buffer(&mut buffer, 0);
+    while window.is_open() && !window.is_key_down(Key::Escape) {
+        clear_buffer(&mut buffer, 0);   //screen clear
         clear_buffer(&mut z_buffer, f32::INFINITY);
+
+        let transform = Transform::from_rotation(glam::Quat::from_euler(glam::EulerRot::XYZ, rot, 0.0, 0.0));
 
         if window.is_key_down(Key::Space) {
             redTriangle = true;
@@ -112,12 +114,13 @@ fn main() {
             //Render_Depth(triangles[1], &mut buffer, &mut z_buffer);
             println!("Doesnt work");
         } else {
-            //Raster_Triangle(triangles[0], &mut buffer, &texture, &mut z_buffer);
+            //Raster_Triangle(triangles[0], &mut buffer, &texture, &mut z_buffer);  
             //Raster_Triangle(triangles[1], &mut buffer, &texture, &mut z_buffer);
             
             
 
-            raster_mesh(&mesh, &Transform::IDENTITY.local(), &camera.view(), &camera.projection(), Some(&texture), &mut buffer, &mut z_buffer, window_size);
+            raster_mesh(&mesh, &transform.local(), &camera.view(), &camera.projection(), Some(&texture), &mut buffer, &mut z_buffer, window_size);
+            rot += 0.05;
         }
 
         // We unwrap here as we want this code to exit if it fails. Real applications may want to handle this in a different way
