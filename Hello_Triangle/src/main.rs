@@ -2,6 +2,7 @@ extern crate minifb;
 use std::vec;
 use std::path::Path;
 
+
 use Hello_Triangle::geometry::Mesh;
 use glam::Vec3Swizzles;
 use glam::{Vec2, Vec3, Vec3A, Vec4};
@@ -32,28 +33,36 @@ fn main() {
     
     let window_size = glam::vec2(WIDTH as f32, HEIGHT as f32);
 
+    let aspect_ratio = WIDTH as f32 / HEIGHT as f32;
+    let camera = Camera {
+        aspect_ratio,
+        transform: Transform::from_translation(glam::vec3(0.0, 0.0, 500.0)),
+        frustum_far: 1000.0,
+        ..Default::default()
+    };
+
     let texture = Texture::Load(Path::new("D:/BUAS/MC/Rust/RasterRusterMC/Hello_Triangle/Assets/bojan.jpg"));
 
     let mut redTriangle: bool = true;
     let mut wireFrameRend: bool = false;
 
     let vertex0 = Vertex{
-        position: glam::vec3(100.0, 100.0, 0.0),
+        position: glam::vec3(-2.0, -2.0, 0.0),
         color: glam::vec3(1.0, 0.0, 0.0),
         uv: glam::vec2(0.0, 0.0),
     };
     let vertex1 = Vertex{
-        position: glam::vec3(100.0, 400.0, 0.0),
+        position: glam::vec3(-2.0, 2.0, 0.0),
         color: glam::vec3(0.0, 1.0, 0.0),
         uv: glam::vec2(0.0, 1.0),
     };
     let vertex2 = Vertex {
-        position: glam::vec3(400.0, 400.0, 0.0),
+        position: glam::vec3(2.0, 2.0, 0.0),
         color: glam::vec3(0.0, 0.0, 1.0),
         uv: glam::vec2(1.0, 1.0),
     };
     let vertex3 = Vertex {
-        position: glam::vec3(400.0, 100.0, 0.0),
+        position: glam::vec3(2.0, -2.0, 0.0),
         color: glam::vec3(0.0, 1.0, 1.0),
         uv: glam::vec2(1.0, 0.0),
     };
@@ -73,11 +82,11 @@ fn main() {
     };
 
     //println!("interpolated verted: {:?}", Lerp(triangles[0].vert0, Lerp(triangles[0].vert1, 0.5)); //explodes
-    let mut trianglesGood = vec![glam::uvec3(0,1,2), glam::uvec3(0,2,3)];
-    let mut verticesGood = vec![vertex0, vertex1, vertex2, vertex3];
+    let trianglesGood = vec![glam::uvec3(0,1,2), glam::uvec3(0,2,3)];
+    let verticesGood = vec![vertex0, vertex1, vertex2, vertex3];
 
     let mut mesh = Mesh::new();
-    mesh.add_section_from_vertices(&mut trianglesGood, &mut verticesGood);
+    mesh.add_section_from_vertices(& trianglesGood, & verticesGood);
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
 
@@ -108,7 +117,7 @@ fn main() {
             
             
 
-            raster_mesh(&mesh, &texture, &mut buffer, &mut z_buffer, window_size);
+            raster_mesh(&mesh, &Transform::IDENTITY.local(), &camera.view(), &camera.projection(), Some(&texture), &mut buffer, &mut z_buffer, window_size);
         }
 
         // We unwrap here as we want this code to exit if it fails. Real applications may want to handle this in a different way

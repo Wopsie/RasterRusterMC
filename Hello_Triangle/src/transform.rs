@@ -62,7 +62,7 @@ impl Transform {
     }
 
     pub fn forward(&self) -> Vec3 {
-        self.rotation * -Vec3::Z
+        self.rotation * -Vec3::Z    //account for flipping of Z axis? 
     }
 
     // impl Into<Mat4> for Transform {  //prefered to implement From for Transform instead, but can be nice to explicitness

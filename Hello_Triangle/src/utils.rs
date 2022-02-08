@@ -1,5 +1,7 @@
 //use std::process::Output;
 
+use std::process::Output;
+
 use glam::{Vec2, Vec3};
 //pub mod geometry;
 //pub use geometry::Point;
@@ -66,6 +68,17 @@ where
     T: Copy,
 {
     buffer.iter_mut().map(|x| *x = value).count();
+}
+
+pub fn map_to_range<T>(v: T, a1: T, a2: T, b1: T, b2: T) -> T
+where //"where" is used to require generic type "T" to have implemented various operators and rust Traits
+    T: std::ops::Sub<Output = T>
+        + std::ops::Div<Output = T>
+        + std::ops::Mul<Output = T>
+        + std::ops::Add<Output = T>
+        + Copy,
+{    
+    b1 + (v - a1) * (b2 - b1) / (a2 - a1)
 }
 
 pub fn bresenham_function(vert0: Vec2, vert1: Vec2) -> Vec<Point>

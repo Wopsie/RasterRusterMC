@@ -118,7 +118,7 @@ impl Mesh {
 
     pub fn add_section_from_vertices(&mut self, triangles: &[UVec3], vertices: &[Vertex]) {
         let offset = self.vertices.len() as u32;
-        let triangles: Vec<UVec3> = triangles.iter().map(|tri| *tri + offset).collect();
+        let triangles: Vec<UVec3> = triangles.iter().map(|tri| *tri + offset).collect(); //rust closure, iter map
         self.triangles.extend_from_slice(&triangles);
         self.vertices.extend_from_slice(vertices);
     }
