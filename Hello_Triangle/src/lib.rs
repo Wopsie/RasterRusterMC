@@ -57,12 +57,20 @@ pub fn Raster_Triangle(tri: Triangle, model: &Mat4, view: &Mat4, projection: &Ma
     let clip1 = mvp * Vec4::from((tri.vert1.position, 1.0));
     let clip2 = mvp * Vec4::from((tri.vert2.position, 1.0));
     
+    let rec0 = 1.0 / clip0.w;
+    let rec1 = 1.0 / clip1.w;
+    let rec2 = 1.0 / clip2.w;
+
     //Normalized Device Coordinates
     //perform perspective division to transform in ndc. xyz components of ndc are now between -1 and 1 (if within frustum)
     //normally the output of the vertex shader 
-    let ndc0 = clip0 / clip0.w; //since clip.w is -1 to 1, map clip space coords to -1/1
-    let ndc1 = clip1 / clip1.w;
-    let ndc2 = clip2 / clip2.w;
+    let ndc0 = clip0 * rec0; //since clip.w is -1 to 1, map clip space coords to -1/1
+    let ndc1 = clip1 * rec1;
+    let ndc2 = clip2 * rec2;
+
+    let v0 = tri.vert0 * rec0;
+    let v1 = tri.vert1 * rec1;
+    let v2 = tri.vert2 * rec2;
 
     //remap NDC (-1/1) xy axes to viewport size (width/height)
     let sc0 = glam::vec2 (
@@ -89,12 +97,15 @@ pub fn Raster_Triangle(tri: Triangle, model: &Mat4, view: &Mat4, projection: &Ma
 
         if let Some(bary) = Barycentric_Coordinates(coords,sc0,sc1,sc2, area) {
             // bary var presumably contains barycentric coordinates of the given coords on the given triangle
-            let depth = bary.x * tri.vert0.position.z + bary.y * tri.vert1.position.z + bary.z * tri.vert2.position.z;
+            let correction = bary.x * rec0 + bary.y * rec1 + bary.z * rec2;
+            let depth = correction;
+            let correction = 1.0 / correction;
+
             if depth < z_buffer[i] {
                 z_buffer[i] = depth;
                 
-                let color = bary.x * tri.vert0.color + bary.y * tri.vert1.color + bary.z * tri.vert2.color;
-
+                let color = bary.x * v0.color + bary.y * v1.color + bary.z * v2.color;
+                let color = color * correction;
                 let mut color = to_argb8(
                     255, 
                     (color.x * 255.0) as u8,
@@ -103,10 +114,11 @@ pub fn Raster_Triangle(tri: Triangle, model: &Mat4, view: &Mat4, projection: &Ma
                 );
 
                 if let Some(tex) = texture {
-                    let texCoords = bary.x * tri.vert0.uv + bary.y * tri.vert1.uv + bary.z * tri.vert2.uv;
+                    let texCoords = bary.x * v0.uv + bary.y * v1.uv + bary.z * v2.uv;
+                    let texCoords = texCoords * correction;
                     color = tex.argb_at_uv(texCoords.x, texCoords.y);
                 }
-
+                
                 *pixel = color; //write to buffer
             }
         }
@@ -138,6 +150,12 @@ pub fn Render_Depth(tri: Triangle, buffer: &mut Vec<u32>, z_buffer: &mut Vec<f32
                 z_buffer[i] = depth;
                 *pixel = (-depth * 255.0) as u32; //write to buffer
             }
+            // color = to_argb8(
+                //     255,
+                //     (depth * 255.0) as u8,
+                //     (depth * 255.0) as u8,
+                //     (depth * 255.0) as u8,
+                // );
         }
     }
 }

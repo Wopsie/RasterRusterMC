@@ -47,22 +47,43 @@ fn main() {
     let mut wireFrameRend: bool = false;
 
     let vertex0 = Vertex{
-        position: glam::vec3(-2.0, -2.0, 0.0),
+        position: glam::vec3(-2.0, -2.0, 2.0),
         color: glam::vec3(1.0, 0.0, 0.0),
         uv: glam::vec2(0.0, 1.0),
     };
     let vertex1 = Vertex{
-        position: glam::vec3(-2.0, 2.0, 0.0),
+        position: glam::vec3(-2.0, 2.0, 2.0),
         color: glam::vec3(0.0, 1.0, 0.0),
         uv: glam::vec2(0.0, 0.0),
     };
     let vertex2 = Vertex {
-        position: glam::vec3(2.0, 2.0, 0.0),
+        position: glam::vec3(2.0, 2.0, 2.0),
         color: glam::vec3(0.0, 0.0, 1.0),
         uv: glam::vec2(1.0, 0.0),
     };
     let vertex3 = Vertex {
-        position: glam::vec3(2.0, -2.0, 0.0),
+        position: glam::vec3(2.0, -2.0, 2.0),
+        color: glam::vec3(0.0, 1.0, 1.0),
+        uv: glam::vec2(1.0, 1.0),
+    };
+
+    let vertex4 = Vertex{
+        position: glam::vec3(-2.0, -2.0, -2.0),
+        color: glam::vec3(1.0, 0.0, 0.0),
+        uv: glam::vec2(0.0, 1.0),
+    };
+    let vertex5 = Vertex{
+        position: glam::vec3(-2.0, 2.0, -2.0),
+        color: glam::vec3(0.0, 1.0, 0.0),
+        uv: glam::vec2(0.0, 0.0),
+    };
+    let vertex6 = Vertex {
+        position: glam::vec3(2.0, 2.0, -2.0),
+        color: glam::vec3(0.0, 0.0, 1.0),
+        uv: glam::vec2(1.0, 0.0),
+    };
+    let vertex7 = Vertex {
+        position: glam::vec3(2.0, -2.0, -2.0),
         color: glam::vec3(0.0, 1.0, 1.0),
         uv: glam::vec2(1.0, 1.0),
     };
@@ -82,8 +103,15 @@ fn main() {
     };
 
     //println!("interpolated verted: {:?}", Lerp(triangles[0].vert0, Lerp(triangles[0].vert1, 0.5)); //explodes
-    let trianglesGood = vec![glam::uvec3(2,1,0), glam::uvec3(3,2,0)];
-    let verticesGood = vec![vertex0, vertex1, vertex2, vertex3];
+    let trianglesGood = vec![
+        glam::uvec3(2,1,0), glam::uvec3(3,2,0),     //front side
+        glam::uvec3(6,5,4), glam::uvec3(7,6,4),     //back side
+        glam::uvec3(3,0,4), glam::uvec3(7,3,4),     //bottom side
+        glam::uvec3(2,1,5), glam::uvec3(6,2,5),     //top side
+        glam::uvec3(6,2,3), glam::uvec3(7,6,3),     //left side
+        glam::uvec3(1,5,4), glam::uvec3(0,1,4),     //right side
+        ];
+    let verticesGood = vec![vertex0, vertex1, vertex2, vertex3, vertex4, vertex5, vertex6, vertex7];
 
     let mut mesh = Mesh::new();
     mesh.add_section_from_vertices(& trianglesGood, & verticesGood);
