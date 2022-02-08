@@ -1,33 +1,48 @@
+use geometry::Mesh;
 use glam::{Vec2, Vec3Swizzles};
 
 //pub mod files. Important because this exposes these modules from other files to whoever uses lib.rs
 pub mod geometry;
 pub mod texture;
 pub mod utils;
-pub use {geometry::Vertex, geometry::Triangle, texture::Texture, utils::*};
+pub mod transform;
+pub use {geometry::Vertex, geometry::Triangle, texture::Texture, transform::Transform, utils::*};
 
 #[cfg(test)] //unit tests in Rust
 mod tests {
     use crate::geometry::Vertex;
+    use crate::transform::{Transform, TransformInitialParams};
     use crate::utils::*;
 
-    #[test]
-    fn lerping() {
-        let v0 = Vertex { 
-            position: glam::vec3(100.0, 100.0, 0.0),
-            color: glam::vec3(0.0, 1.0, 0.0),
-            uv: glam::vec2(0.0, 0.0),
-        };
+     #[test]
+     fn lerping() {
+         let v0 = Vertex { 
+             position: glam::vec3(100.0, 100.0, 0.0),
+             color: glam::vec3(0.0, 1.0, 0.0),
+             uv: glam::vec2(0.0, 0.0),
+         };
+    
+         let v1 = Vertex {
+             position: glam::vec3(100.0, 400.0, 0.0),
+             color: glam::vec3(1.0, 0.0, 0.0),
+             uv: glam::vec2(0.0, 1.0),
+         };
+    
+         let interpolated = Lerp(v0, v1, 0.5);
+         assert_eq!(interpolated.uv.y, 0.5);
+     }
 
-        let v1 = Vertex {
-            position: glam::vec3(100.0, 400.0, 0.0),
-            color: glam::vec3(1.0, 0.0, 0.0),
-            uv: glam::vec2(0.0, 1.0),
-        };
-
-        let interpolated = Lerp(v0, v1, 0.5);
-        assert_eq!(interpolated.uv.y, 0.5);
-    }
+     #[test]
+     fn transform_init() {
+         let translation = glam::vec3(1.2, 199.0, 9.0);
+         let rotation = glam::Quat::from_rotation_z(std::f32::consts::PI / 2.0);
+         let transform = Transform::from(TransformInitialParams::TranslationRotation( 
+             translation,
+             rotation,
+         ));
+    
+         assert_eq!(transform.translation.x, translation.x);
+     }
 }
 
 pub fn Raster_Triangle(tri: Triangle, buffer: &mut Vec<u32>, texture: &Texture, z_buffer: &mut Vec<f32>)
@@ -115,5 +130,25 @@ pub fn Funky_Triangle(tri: Triangle, buffer: &mut Vec<u32>)
             (m0*255.0) as u8, 
             (m1*255.0) as u8,
         );
+    }
+}
+
+pub fn raster_mesh(
+    mesh: &Mesh,
+    texture: &Texture,
+    buffer: &mut Vec<u32>,
+    z_buffer: &mut Vec<f32>,
+    window_size: Vec2,
+) {
+    for tri in mesh.triangles() {
+        let vertices = mesh.get_vertices_from_triangle(*tri);
+
+        let tempTri = Triangle {    //what the fuck?
+            vert0: *vertices[0],
+            vert1: *vertices[1],
+            vert2: *vertices[2],
+        };
+
+        Raster_Triangle(tempTri, buffer, texture, z_buffer)
     }
 }

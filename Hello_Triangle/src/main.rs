@@ -2,6 +2,7 @@ extern crate minifb;
 use std::vec;
 use std::path::Path;
 
+use Hello_Triangle::geometry::Mesh;
 use glam::Vec3Swizzles;
 use glam::{Vec2, Vec3, Vec3A, Vec4};
 use minifb::{Key, Window, WindowOptions};
@@ -29,6 +30,8 @@ fn main() {
     let mut buffer: Vec<u32> = vec![to_argb8(255, 0, 0, 0); WIDTH * HEIGHT];
     let mut z_buffer = vec![f32::INFINITY; WIDTH * HEIGHT];
     
+    let window_size = glam::vec2(WIDTH as f32, HEIGHT as f32);
+
     let texture = Texture::Load(Path::new("D:/BUAS/MC/Rust/RasterRusterMC/Hello_Triangle/Assets/bojan.jpg"));
 
     let mut redTriangle: bool = true;
@@ -70,7 +73,11 @@ fn main() {
     };
 
     //println!("interpolated verted: {:?}", Lerp(triangles[0].vert0, Lerp(triangles[0].vert1, 0.5)); //explodes
+    let mut trianglesGood = vec![glam::uvec3(0,1,2), glam::uvec3(0,2,3)];
+    let mut verticesGood = vec![vertex0, vertex1, vertex2, vertex3];
 
+    let mut mesh = Mesh::new();
+    mesh.add_section_from_vertices(&mut trianglesGood, &mut verticesGood);
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
 
@@ -96,9 +103,12 @@ fn main() {
             //Render_Depth(triangles[1], &mut buffer, &mut z_buffer);
             println!("Doesnt work");
         } else {
-            Raster_Triangle(triangles[0], &mut buffer, &texture, &mut z_buffer);
-            Raster_Triangle(triangles[1], &mut buffer, &texture, &mut z_buffer);
+            //Raster_Triangle(triangles[0], &mut buffer, &texture, &mut z_buffer);
+            //Raster_Triangle(triangles[1], &mut buffer, &texture, &mut z_buffer);
             
+            
+
+            raster_mesh(&mesh, &texture, &mut buffer, &mut z_buffer, window_size);
         }
 
         // We unwrap here as we want this code to exit if it fails. Real applications may want to handle this in a different way

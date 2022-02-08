@@ -1,5 +1,5 @@
-use glam::{Vec2, Vec3};
-use std::{ops::{Add, Mul, Sub}, f32::MIN_POSITIVE};
+use glam::{Vec2, Vec3, UVec3};
+use std::{ops::{Add, Mul, Sub, MulAssign, AddAssign}, f32::MIN_POSITIVE};
 
 pub struct Point {
     pub x: i32,
@@ -68,6 +68,81 @@ impl Mul<f32> for Vertex{
         let color = self.color * rhs;
         let uv = self.uv * rhs;
         Self::Construct(position, color, uv)
+    }
+}
+
+impl MulAssign<f32> for Vertex {
+    fn mul_assign(&mut self, rhs: f32) {
+        self.position *= rhs;
+        self.color *= rhs;
+        self.uv *= rhs;
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Mesh {
+    triangles: Vec<UVec3>,
+    vertices: Vec<Vertex>,
+}
+
+impl Mesh {
+    pub fn new() -> Self {
+        Self {
+            triangles: Vec::new(),
+            vertices: Vec::new(),
+        }
+    }
+
+    //getter function?
+    pub fn triangles(&self) -> &Vec<UVec3> {
+        &self.triangles //kindof functions like index buffer
+    }
+
+    pub fn vertices(&self) -> &Vec<Vertex> {
+        &self.vertices  //vertex buffer
+    }
+    
+    pub fn get_vertices_from_triangle(&self, triangle: UVec3) -> [&Vertex; 3] {
+        [
+            &self.vertices[triangle.x as usize],
+            &self.vertices[triangle.y as usize],
+            &self.vertices[triangle.z as usize],
+        ]   //return triangle as array of vertices
+    }
+
+    pub fn from_vertices(triangles: &[UVec3], vertices: &[Vertex]) -> Self {
+        let mut mesh = Mesh::new();
+        mesh.add_section_from_vertices(triangles, vertices);
+        mesh
+    }
+
+    pub fn add_section_from_vertices(&mut self, triangles: &[UVec3], vertices: &[Vertex]) {
+        let offset = self.vertices.len() as u32;
+        let triangles: Vec<UVec3> = triangles.iter().map(|tri| *tri + offset).collect();
+        self.triangles.extend_from_slice(&triangles);
+        self.vertices.extend_from_slice(vertices);
+    }
+}
+
+impl Default for Mesh {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Add for Mesh {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self {
+        let mut result = Self::from_vertices(self.triangles(), self.vertices());
+        result.add_section_from_vertices(rhs.triangles(), rhs.vertices());
+        result
+    }
+}
+
+impl AddAssign for Mesh {
+    fn add_assign(&mut self, rhs: Self) {
+        self.add_section_from_vertices(rhs.triangles(), rhs.vertices());
     }
 }
 
