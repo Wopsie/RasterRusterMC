@@ -115,24 +115,32 @@ pub fn Raster_Clipped_Triangle(
                     if depth < z_buffer[pixel_id] {
                         z_buffer[pixel_id] = depth;
 
+                        let normal = bary.x * v0.normal + bary.y * v1.normal + bary.z * v2.normal;
+                        let normal = normal * correction;
+
+                        let n_dot_l = normal.dot(Vec3::ONE.normalize());    //normalize vertex normals
 
                         let color = bary.x * v0.color + bary.y * v1.color + bary.z * v2.color;
-                        let color = color * correction;
-                        let mut color = to_argb8(
+                        let mut color = color * correction;
+
+                        
+                        if let Some(tex) = texture {
+                            let texCoords = bary.x * v0.uv + bary.y * v1.uv + bary.z * v2.uv;
+                            let texCoords = texCoords * correction;
+                            color = tex.argb_at_uvf(texCoords.x, texCoords.y).yzw();
+                        }
+                        
+                        let ambient = glam::vec3(0.2, 0.2, 0.2);
+                        color = color * n_dot_l + ambient;
+                        let mut out_color = to_argb8(
                             255, 
                             (color.x * 255.0) as u8,
                             (color.y * 255.0) as u8,
                             (color.z * 255.0) as u8,
                         );
 
-                        if let Some(tex) = texture {
-                            let texCoords = bary.x * v0.uv + bary.y * v1.uv + bary.z * v2.uv;
-                            let texCoords = texCoords * correction;
-                            color = tex.argb_at_uv(texCoords.x, texCoords.y);
-                        }
-                        
                         if let RenderType::Depth = rtype {
-                            color = to_argb8(
+                            out_color = to_argb8(
                                 255,
                                 (depth * 255.0) as u8,
                                 (depth * 255.0) as u8,
@@ -140,7 +148,7 @@ pub fn Raster_Clipped_Triangle(
                             );
                         }
 
-                        buffer[pixel_id] = color; //write to buffer
+                        buffer[pixel_id] = out_color; //write to buffer
                     }
 
                 }   
@@ -160,9 +168,7 @@ pub fn Raster_Triangle(
     rtype: &RenderType,
 ){
     let cof_mat = cofactor(model_mat);
-    // let triangle = Triangle {
-    //     vert0: *tri.vert0
-    // }
+
     let mut clip_tri = tri.transform(mvp);
     clip_tri.vert0.normal = (cof_mat * tri.vert0.normal.extend(0.0)).xyz();
     clip_tri.vert1.normal = (cof_mat * tri.vert1.normal.extend(0.0)).xyz();
@@ -329,7 +335,16 @@ pub fn raster_mesh(
             vert2: *vertices[2],
         };
 
-        Raster_Triangle(tempTri, loc_mat, mvp, texture, buffer, z_buffer, viewport_size, render_type)
+        Raster_Triangle(
+            tempTri, 
+            loc_mat,
+            mvp, 
+            texture, 
+            buffer, 
+            z_buffer, 
+            viewport_size, 
+            render_type
+        );
     }
 }
 

@@ -43,85 +43,16 @@ fn main() {
     let mut camera = Camera {
         aspect_ratio,
         transform: Transform::from_translation(glam::vec3(0.0, 0.0, 8.0)),
+        frustum_near: 4.0,
         frustum_far: 100.0,
         ..Default::default()
     };
-
     
-    let vertex0 = Vertex{
-        position: glam::vec4(-1.0, -1.0, 1.0, 1.0),
-        normal: glam::vec3(0.0, 0.0, 0.0),
-        color: glam::vec3(1.0, 0.0, 0.0),
-        uv: glam::vec2(0.0, 1.0),
-    };
-    let vertex1 = Vertex{
-        position: glam::vec4(-1.0, 1.0, 1.0, 1.0),
-        normal: glam::vec3(0.0, 0.0, 0.0),
-        color: glam::vec3(0.0, 1.0, 0.0),
-        uv: glam::vec2(0.0, 0.0),
-    };
-    let vertex2 = Vertex {
-        position: glam::vec4(1.0, 1.0, 1.0, 1.0),
-        normal: glam::vec3(0.0, 0.0, 0.0),
-        color: glam::vec3(0.0, 0.0, 1.0),
-        uv: glam::vec2(1.0, 0.0),
-    };
-    let vertex3 = Vertex {
-        position: glam::vec4(1.0, -1.0, 1.0, 1.0),
-        normal: glam::vec3(0.0, 0.0, 0.0),
-        color: glam::vec3(0.0, 1.0, 1.0),
-        uv: glam::vec2(1.0, 1.0),
-    };
-    
-    //let mut triangles: [Triangle; 2] = [Triangle::default(); 2];
-    
-    //println!("interpolated verted: {:?}", Lerp(triangles[0].vert0, Lerp(triangles[0].vert1, 0.5)); //explodes
-    let trianglesGood = vec![glam::uvec3(2,1,0), glam::uvec3(3,2,0)];
-    let verticesGood = vec![vertex0, vertex1, vertex2, vertex3];
-    
-    //let mut mesh = Mesh::new();
-    //let texture = Texture::Load(Path::new("D:/BUAS/MC/Rust/RasterRusterMC/Hello_Triangle/Assets/bojan.jpg"));
-
-    let texture = Texture::Load(Path::new("D:/BUAS/MC/Rust/RasterRusterMC/Hello_Triangle/Assets/Helmet/Default_albedo.jpg"));
-    let mesh = load_gltf(Path::new("D:/BUAS/MC/Rust/RasterRusterMC/Hello_Triangle/Assets/Helmet/damagedhelmet.gltf"));
-
-    //mesh.add_section_from_vertices(& trianglesGood, & verticesGood);
+    let texture = Texture::Load(Path::new("Assets/Helmet/Default_albedo.jpg"));
+    let mesh = load_gltf(Path::new("Assets/Helmet/damagedhelmet.gltf"));
 
     let mut rot = 0.0;
 
-    // let transform0 = Transform::IDENTITY;
-    // let transform1 = Transform::from_rotation(glam::Quat::from_euler(
-    //     glam::EulerRot::XYZ, 
-    //     -std::f32::consts::PI, 
-    //     0.0, 
-    //     0.0,
-    // ));
-    // let transform2 = Transform::from_rotation(glam::Quat::from_euler(
-    //     glam::EulerRot::XYZ, 
-    //     std::f32::consts::FRAC_PI_2, 
-    //     0.0, 
-    //     0.0,
-    // ));
-    // let transform3 = Transform::from_rotation(glam::Quat::from_euler(
-    //     glam::EulerRot::XYZ, 
-    //     -std::f32::consts::FRAC_PI_2, 
-    //     0.0, 
-    //     0.0,
-    // ));
-    // let transform4 = Transform::from_rotation(glam::Quat::from_euler(
-    //     glam::EulerRot::XYZ, 
-    //     0.0, 
-    //     -std::f32::consts::FRAC_PI_2, 
-    //     0.0,
-    // ));
-    // let transform5 = Transform::from_rotation(glam::Quat::from_euler(
-    //     glam::EulerRot::XYZ, 
-    //     0.0, 
-    //     std::f32::consts::FRAC_PI_2, 
-    //     0.0,
-    // ));
-
-    //let mut pos = glam::Vec3::new(0.0, 0.0, 8.0);
     let mut cam_rot = 0.0;
 
     let time_tracker = Instant::now();
@@ -134,27 +65,10 @@ fn main() {
         delta_time = (now - last) as f32 * 0.001;
         last = now;
         
-        //println!("delta time {:?}", delta_time);
-
-        //now = currTotal - last;
-
-        //delta_time = (now - last) * 1000 / now;
-        
-        //now += time_tracker.elapsed().as_millis();
-        //let total_elapsed = now.elapsed().as_millis();
-        //last = now - time_tracker.elapsed().as_millis();
-
-
-
-        //println!("{:?}", elapsed.as_millis());
         clear_buffer(&mut buffer, 0);   //screen clear
         clear_buffer(&mut z_buffer, f32::INFINITY);
         
-        //camera.transform = Transform::from_translation(pos);
         camera.transform = Transform::from_translation_rotation(camera.transform.translation, glam::Quat::from_euler(glam::EulerRot::XYZ, 0.0, cam_rot, 0.0));
-        //let mut pos = glam::Vec3(0.0, 0.0, 0.0);
-        //println!("{:?}", &pos);
-        //println!("{:?}", &camera.transform.forward());
 
         if window.is_key_down(Key::Space) {
             rendering_type = RenderType::Depth;
@@ -172,18 +86,16 @@ fn main() {
         }
 
 
-        //pos *= camera.transform.local();
-        //let cam_trans_mat = 
         let parent_local = Transform::from_rotation(glam::Quat::from_euler(glam::EulerRot::XYZ, rot * 0.8, rot * 0.5, rot)).local();
         let view = camera.view();
         let proj = camera.projection();
         
         raster_mesh(&mesh, &parent_local, &(proj * view * parent_local),Some(&texture), &mut buffer, &mut z_buffer, window_size, &rendering_type);
-        raster_mesh(&mesh, &parent_local, &(proj * view * parent_local), Some(&texture), &mut buffer, &mut z_buffer, window_size, &rendering_type);
-        raster_mesh(&mesh, &parent_local, &(proj * view * parent_local), Some(&texture), &mut buffer, &mut z_buffer, window_size, &rendering_type);
-        raster_mesh(&mesh, &parent_local, &(proj * view * parent_local), Some(&texture), &mut buffer, &mut z_buffer, window_size, &rendering_type);
-        raster_mesh(&mesh, &parent_local, &(proj * view * parent_local), Some(&texture), &mut buffer, &mut z_buffer, window_size, &rendering_type);
-        raster_mesh(&mesh, &parent_local, &(proj * view * parent_local), Some(&texture), &mut buffer, &mut z_buffer, window_size, &rendering_type);
+        //raster_mesh(&mesh, &parent_local, &(proj * view * parent_local), Some(&texture), &mut buffer, &mut z_buffer, window_size, &rendering_type);
+        //raster_mesh(&mesh, &parent_local, &(proj * view * parent_local), Some(&texture), &mut buffer, &mut z_buffer, window_size, &rendering_type);
+        //raster_mesh(&mesh, &parent_local, &(proj * view * parent_local), Some(&texture), &mut buffer, &mut z_buffer, window_size, &rendering_type);
+        //raster_mesh(&mesh, &parent_local, &(proj * view * parent_local), Some(&texture), &mut buffer, &mut z_buffer, window_size, &rendering_type);
+        //raster_mesh(&mesh, &parent_local, &(proj * view * parent_local), Some(&texture), &mut buffer, &mut z_buffer, window_size, &rendering_type);
         rot += 0.6 * delta_time;
 
         // We unwrap here as we want this code to exit if it fails. Real applications may want to handle this in a different way
