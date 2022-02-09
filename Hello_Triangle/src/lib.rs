@@ -1,5 +1,6 @@
 use geometry::Mesh;
-use glam::{Vec2, Vec3Swizzles, Mat4, Vec4};
+use glam::{Vec2, Vec3Swizzles, Mat4, Vec4, Vec4Swizzles, Vec3};
+use gltf::json::material::AlphaCutoff;
 
 //pub mod files. Important because this exposes these modules from other files to whoever uses lib.rs
 pub mod geometry;
@@ -21,6 +22,12 @@ pub enum RenderType{
     Wireframe,
 }
 
+pub enum ClipResult {
+    None,
+    One(Triangle),
+    Two((Triangle, Triangle)),
+}
+
 #[cfg(test)] //unit tests in Rust
 mod tests {
     use crate::geometry::Vertex;
@@ -30,12 +37,14 @@ mod tests {
     #[test]
     fn lerping() {
         let v0 = Vertex { 
-            position: glam::vec3(100.0, 100.0, 0.0),
+            position: glam::vec4(100.0, 100.0, 0.0, 1.0),
+            normal: glam::vec3(0.0, 0.0, 1.0),
             color: glam::vec3(0.0, 1.0, 0.0),
             uv: glam::vec2(0.0, 0.0),
         };
              let v1 = Vertex {
-            position: glam::vec3(100.0, 400.0, 0.0),
+            position: glam::vec4(100.0, 400.0, 0.0, 1.0),
+            normal: glam::vec3(0.0, 0.0, 1.0),
             color: glam::vec3(1.0, 0.0, 0.0),
             uv: glam::vec2(0.0, 1.0),
         };
@@ -55,24 +64,24 @@ mod tests {
     }
 }
 
-pub fn Raster_Triangle(tri: &Triangle, mvp: &Mat4, buffer: &mut Vec<u32>, texture: Option<&Texture>, z_buffer: &mut Vec<f32>, viewport_size: Vec2, rtype: &RenderType)
+pub fn Raster_Clipped_Triangle(tri: &Triangle, buffer: &mut Vec<u32>, texture: Option<&Texture>, z_buffer: &mut Vec<f32>, viewport_size: Vec2, rtype: &RenderType)
 {
     //let mvp = *projection * *view * *model; //multiplied from right to left
 
-    let clip0 = *mvp * Vec4::from((tri.vert0.position, 1.0));
-    let clip1 = *mvp * Vec4::from((tri.vert1.position, 1.0));
-    let clip2 = *mvp * Vec4::from((tri.vert2.position, 1.0));
+    //let clip0 = *mvp * Vec4::from((tri.vert0.position, 1.0));
+    //let clip1 = *mvp * Vec4::from((tri.vert1.position, 1.0));
+    //let clip2 = *mvp * Vec4::from((tri.vert2.position, 1.0));
     
-    let rec0 = 1.0 / clip0.w;
-    let rec1 = 1.0 / clip1.w;
-    let rec2 = 1.0 / clip2.w;
+    let rec0 = 1.0 / tri.vert0.position.w;
+    let rec1 = 1.0 / tri.vert0.position.w;
+    let rec2 = 1.0 / tri.vert0.position.w;
 
     //Normalized Device Coordinates
     //perform perspective division to transform in ndc. xyz components of ndc are now between -1 and 1 (if within frustum)
     //normally the output of the vertex shader 
-    let ndc0 = clip0 * rec0; //since clip.w is -1 to 1, map clip space coords to -1/1
-    let ndc1 = clip1 * rec1;
-    let ndc2 = clip2 * rec2;
+    let ndc0 = tri.vert0.position * rec0; //since clip.w is -1 to 1, map clip space coords to -1/1
+    let ndc1 = tri.vert0.position * rec1;
+    let ndc2 = tri.vert0.position * rec2;
 
     let v0 = tri.vert0 * rec0;
     let v1 = tri.vert1 * rec1;
@@ -142,38 +151,200 @@ pub fn Raster_Triangle(tri: &Triangle, mvp: &Mat4, buffer: &mut Vec<u32>, textur
     }
 }
 
-pub fn Render_Depth(tri: Triangle, buffer: &mut Vec<u32>, z_buffer: &mut Vec<f32>)
-{
-    for (i, pixel) in buffer.iter_mut().enumerate() 
-    {
-        let coords = index_to_coords(i, 500);
-        let coords = glam::vec2(coords.0 as f32, coords.1 as f32);
+pub fn Raster_Triangle(
+    tri: &Triangle,
+    model_mat: &Mat4,
+    mvp: &Mat4, 
+    texture: Option<&Texture>,
+    buffer: &mut Vec<u32>,
+    z_buffer: &mut Vec<f32>,
+    viewport_size: Vec2,
+    rtype: &RenderType,
+){
+    let cof_mat = cofactor(model_mat);
+    // let triangle = Triangle {
+    //     vert0: *tri.vert0
+    // }
+    let mut clip_tri = tri.transform(mvp);
+    clip_tri.vert0.normal = (cof_mat * tri.vert0.normal.extend(0.0)).xyz();
+    clip_tri.vert1.normal = (cof_mat * tri.vert1.normal.extend(0.0)).xyz();
+    clip_tri.vert2.normal = (cof_mat * tri.vert2.normal.extend(0.0)).xyz();
 
-        let area = edge_function(
-            tri.vert0.position.xy(), 
-            tri.vert1.position.xy(), 
-            tri.vert2.position.xy(),
-        );
-
-        if let Some(bary) = Barycentric_Coordinates(
-            coords,
-            tri.vert0.position.xy(),
-            tri.vert1.position.xy(),
-            tri.vert2.position.xy(),
-            area,
-        ) {
-            let depth = bary.x * tri.vert0.position.z + bary.y * tri.vert1.position.z + bary.z * tri.vert2.position.z;
-            if depth < z_buffer[i] {
-                z_buffer[i] = depth;
-                *pixel = (-depth * 255.0) as u32; //write to buffer
-            }
-            
+    match clip_cull_triangle(&clip_tri) {
+        ClipResult::None => {} //lookup lambda in rust
+        ClipResult::One(ctri) => {
+            Raster_Clipped_Triangle(&ctri, buffer, texture, z_buffer, viewport_size, rtype);   
+        }
+        ClipResult::Two(ctri) => {
+            Raster_Clipped_Triangle(&ctri.0, buffer, texture, z_buffer, viewport_size, rtype);
+            Raster_Clipped_Triangle(&ctri.1, buffer, texture, z_buffer, viewport_size, rtype);
         }
     }
 }
 
+//View Frustum Culling
+pub fn cull_triangle_view_frustum(tri: &Triangle) -> bool {
+    // cull tests against the 6 planes
+    if tri.vert0.position.x > tri.vert0.position.w
+        && tri.vert1.position.x > tri.vert1.position.w
+        && tri.vert2.position.x > tri.vert2.position.w
+    {
+        return true;
+    }
+    if tri.vert0.position.x < -tri.vert0.position.w
+        && tri.vert1.position.x < -tri.vert1.position.w
+        && tri.vert2.position.x < -tri.vert2.position.w
+    {
+        return true;
+    }
+    if tri.vert0.position.y > tri.vert0.position.w
+        && tri.vert1.position.y > tri.vert1.position.w
+        && tri.vert2.position.y > tri.vert2.position.w
+    {
+        return true;
+    }
+    if tri.vert0.position.y < -tri.vert0.position.w
+        && tri.vert1.position.y < -tri.vert1.position.w
+        && tri.vert2.position.y < -tri.vert2.position.w
+    {
+        return true;
+    }
+    if tri.vert0.position.z > tri.vert0.position.w
+        && tri.vert1.position.z > tri.vert1.position.w
+        && tri.vert2.position.z > tri.vert2.position.w
+    {
+        return true;
+    }
+    if tri.vert0.position.z < 0.0 && tri.vert1.position.z < 0.0 && tri.vert2.position.z < 0.0
+    {
+        return true;
+    }
+
+    false
+}
+
+pub fn cull_triangle_backface(tri: &Triangle) -> bool {
+    let normal = tri.vert1.position.xyz() - tri.vert0.position.xyz().cross(tri.vert2.position.xyz() - tri.vert0.position.xyz());
+    let view_dir = -Vec3::Z;
+
+    normal.dot(view_dir) >= 0.0
+}
+
+fn clip_triangle_two(tri: &Triangle) -> (Triangle, Triangle) {
+    let alpha_a = (-tri.vert0.position.z) / (tri.vert1.position.z - tri.vert0.position.z);
+    let alpha_b = (-tri.vert0.position.z) / (tri.vert2.position.z - tri.vert0.position.z);
+
+    //interpolate vertices 
+    let mut v0a = Lerp(tri.vert0, tri.vert1, alpha_a);
+    let mut v0b = Lerp(tri.vert0, tri.vert2, alpha_b);
+
+    let green = Vec3::new(0.0, 1.0, 0.0);
+    let blue = Vec3::new(0.0, 0.0, 1.0);
+    
+    let mut result_a = *tri;
+    let mut result_b = *tri;
+
+    result_a.vert0 = v0a;
+
+    result_b.vert0 = v0a;
+    result_b.vert1 = v0b;
+
+    result_a.vert0.color = green;
+    result_a.vert1.color = green;
+    result_a.vert2.color = green;
+    result_b.vert0.color = blue;
+    result_b.vert1.color = blue;
+    result_b.vert2.color = blue;
+
+    (result_a, result_b)    //not sure what type this actually is. Vector? Array? Tuple?
+}
+
+fn clip_triangle_one(tri: &Triangle) -> Triangle {
+    let alpha_a = (-tri.vert0.position.z) / (tri.vert2.position.z - tri.vert0.position.z);
+    let alpha_b = (-tri.vert1.position.z) / (tri.vert2.position.z - tri.vert1.position.z);
+
+    //interpolate vertices 
+    let mut v0 = Lerp(tri.vert0, tri.vert2, alpha_a);
+    let mut v1 = Lerp(tri.vert1, tri.vert2, alpha_b);
+    let mut v2 = tri.vert2;
+
+    let red = Vec3::new(1.0, 0.0, 0.0);
+
+    v0.color = red;
+    v1.color = red;
+    v2.color = red;
+
+    //if Triangle.vert0.. was called v0.. you would not need to explicitly assign v0.. to vert0.. 
+    Triangle {vert0 : v0, vert1 : v1, vert2 : v2}
+}
+
+pub fn clip_cull_triangle(tri: &Triangle) -> ClipResult {
+    if cull_triangle_backface(tri) {
+        //triangle gets culled
+        return ClipResult::None;    //why does this have to be an explicit return statement?
+    }
+    if cull_triangle_view_frustum(tri) {
+        ClipResult::None
+    } else {
+        if tri.vert0.position.z < 0.0 {
+
+            if tri.vert1.position.z < 0.0 {
+                ClipResult::One(clip_triangle_one(tri))
+            } else if tri.vert2.position.z < 0.0 {
+                ClipResult::One(clip_triangle_one(&tri.reorder(VerticesOrder::ACB)))
+            } else {
+                ClipResult::Two(clip_triangle_two(&tri.reorder(VerticesOrder::ACB)))
+            }
+
+        } else if tri.vert1.position.z < 0.0 {
+            
+            if tri.vert2.position.z < 0.0 {
+                ClipResult::One(clip_triangle_one(&tri.reorder(VerticesOrder::BCA)))
+            } else {
+                ClipResult::Two(clip_triangle_two(&tri.reorder(VerticesOrder::BAC)))
+            }
+
+        } else if tri.vert2.position.z < 0.0 {
+            ClipResult::Two(clip_triangle_two(&tri.reorder(VerticesOrder::CBA)))
+        } else {
+            ClipResult::One(*tri)
+        }
+    }
+}
+
+// pub fn Render_Depth(tri: Triangle, buffer: &mut Vec<u32>, z_buffer: &mut Vec<f32>)
+// {
+//     for (i, pixel) in buffer.iter_mut().enumerate() 
+//     {
+//         let coords = index_to_coords(i, 500);
+//         let coords = glam::vec2(coords.0 as f32, coords.1 as f32);
+
+//         let area = edge_function(
+//             tri.vert0.position.xy(), 
+//             tri.vert1.position.xy(), 
+//             tri.vert2.position.xy(),
+//         );
+
+//         if let Some(bary) = Barycentric_Coordinates(
+//             coords,
+//             tri.vert0.position.xy(),
+//             tri.vert1.position.xy(),
+//             tri.vert2.position.xy(),
+//             area,
+//         ) {
+//             let depth = bary.x * tri.vert0.position.z + bary.y * tri.vert1.position.z + bary.z * tri.vert2.position.z;
+//             if depth < z_buffer[i] {
+//                 z_buffer[i] = depth;
+//                 *pixel = (-depth * 255.0) as u32; //write to buffer
+//             }
+            
+//         }
+//     }
+// }
+
 pub fn raster_mesh(
     mesh: &Mesh,
+    loc_mat: &Mat4,
     mvp: &Mat4,
     texture: Option<&Texture>,
     buffer: &mut Vec<u32>,
@@ -190,7 +361,7 @@ pub fn raster_mesh(
             vert2: *vertices[2],
         };
 
-        Raster_Triangle(tempTri, mvp, buffer, texture, z_buffer, viewport_size, render_type)
+        Raster_Triangle(tempTri, loc_mat, mvp, texture, buffer, z_buffer, viewport_size, render_type)
     }
 }
 

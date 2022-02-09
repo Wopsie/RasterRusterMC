@@ -1,4 +1,4 @@
-use glam::{Vec2, Vec3, UVec3};
+use glam::{Mat4, UVec3, Vec2, Vec3, Vec4, Vec4Swizzles};
 use std::{ops::{Add, Mul, Sub, MulAssign, AddAssign}, f32::MIN_POSITIVE};
 
 pub struct BoundingBox2D {
@@ -30,7 +30,8 @@ pub struct Point {
 //data struct
 #[derive(Debug, Copy, Clone)]
 pub struct Vertex {
-    pub position: Vec3,
+    pub position: Vec4,
+    pub normal: Vec3,
     pub color: Vec3,
     pub uv: Vec2,
 }
@@ -39,9 +40,10 @@ pub struct Vertex {
 impl Vertex 
 {
     //return self, like a constructor kindof
-    pub fn Construct(position: Vec3, color: Vec3, uv: Vec2) -> Self{
+    pub fn Construct(position: Vec4, normal: Vec3, color: Vec3, uv: Vec2) -> Self{
         Self {
             position,
+            normal, 
             color,
             uv,
         }
@@ -51,7 +53,8 @@ impl Vertex
 impl Default for Vertex {
     fn default() -> Self {
         Self {
-            position: Vec3::new(0.0, 0.0, 0.0),
+            position: Vec4::new(0.0, 0.0, 0.0, 0.0),
+            normal: Vec3::new(0.0, 0.0, 0.0),
             color: Vec3::new(0.0, 0.0, 0.0),
             uv: Vec2::new(1.0, 1.0),
         }
@@ -64,9 +67,10 @@ impl Add for Vertex {
 
     fn add(self, rhs: Self) -> Self {
         let position = self.position + rhs.position;
+        let normal = self.normal + rhs.normal;
         let color = self.color + rhs.color;
         let uv = self.uv + rhs.uv;
-        Self::Construct(position, color, uv)
+        Self::Construct(position, normal, color, uv)
     }
 }
 
@@ -75,9 +79,11 @@ impl Sub for Vertex {
 
     fn sub(self, rhs: Self) -> Self{
         let position = self.position - rhs.position;
+        let normal = self.normal - rhs.normal;
         let color = self.color - rhs.color;
         let uv = self.uv - rhs.uv;
-        Self::Construct(position, color, uv)
+        Self::Construct(position, normal, color, uv)
+
     }
 }
 
@@ -86,15 +92,18 @@ impl Mul<f32> for Vertex{
     
     fn mul(self, rhs: f32) -> Self{
         let position = self.position * rhs;
+        let normal = self.normal * rhs;
         let color = self.color * rhs;
         let uv = self.uv * rhs;
-        Self::Construct(position, color, uv)
+        Self::Construct(position, normal, color, uv)
+
     }
 }
 
 impl MulAssign<f32> for Vertex {
     fn mul_assign(&mut self, rhs: f32) {
         self.position *= rhs;
+        self.normal *= rhs;
         self.color *= rhs;
         self.uv *= rhs;
     }
@@ -143,7 +152,19 @@ impl Mesh {
         self.triangles.extend_from_slice(&triangles);
         self.vertices.extend_from_slice(vertices);
     }
+    
+    pub fn add_section_form_buffers(
+        &mut self, 
+        triangles: &[UVec3],
+        positions: &[Vec3],
+        colors: &[Vec3],
+        uvs: &[Vec2],
+    ) {
+        
+    }
 }
+
+//pub fn load_from_gltf() -> Mesh {}
 
 impl Default for Mesh {
     fn default() -> Self {
@@ -175,9 +196,18 @@ pub struct Triangle {
     pub vert2: Vertex,
 }
 
+pub enum VerticesOrder {
+    ABC,
+    ACB,
+    BAC,
+    BCA,
+    CAB,
+    CBA,
+}
+
 impl Triangle 
 {
-    pub fn Construct(v0: Vertex, v1: Vertex, v2: Vertex) -> Self
+    pub fn Construct(v0: Vertex, v1: Vertex, v2: Vertex) -> Self    //construct because I cling to the past and have trouble letting go...
     {
         Self{
             vert0: v0,
@@ -185,7 +215,34 @@ impl Triangle
             vert2: v2,
         }
     }
+
+    pub fn transform(&self, matrix: &Mat4) -> Self {
+
+        let p0 = *matrix * self.vert0.position.xyz().extend(1.0);
+        let p1 = *matrix * self.vert1.position.xyz().extend(1.0);
+        let p2 = *matrix * self.vert2.position.xyz().extend(1.0);
+
+        let mut result = *self;
+
+        result.vert0.position = p0;
+        result.vert1.position = p1;
+        result.vert2.position = p2;
+
+        result
+    }
+
+    pub fn reorder(&self, order: VerticesOrder) -> Self {
+        match order {
+            VerticesOrder::ABC => *self,
+            VerticesOrder::ACB => Self::Construct(self.vert0, self.vert2, self.vert1),
+            VerticesOrder::BAC => Self::Construct(self.vert1, self.vert0, self.vert2),
+            VerticesOrder::BCA => Self::Construct(self.vert1, self.vert2, self.vert0),
+            VerticesOrder::CAB => Self::Construct(self.vert2, self.vert0, self.vert1),
+            VerticesOrder::CBA => Self::Construct(self.vert2, self.vert1, self.vert0),
+        }
+    }
 }
+
 
 impl Default for Triangle {
     fn default() -> Self {

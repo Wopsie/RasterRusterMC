@@ -50,22 +50,26 @@ fn main() {
     let texture = Texture::Load(Path::new("D:/BUAS/MC/Rust/RasterRusterMC/Hello_Triangle/Assets/bojan.jpg"));
 
     let vertex0 = Vertex{
-        position: glam::vec3(-1.0, -1.0, 1.0),
+        position: glam::vec4(-1.0, -1.0, 1.0, 1.0),
+        normal: glam::vec3(0.0, 0.0, 0.0),
         color: glam::vec3(1.0, 0.0, 0.0),
         uv: glam::vec2(0.0, 1.0),
     };
     let vertex1 = Vertex{
-        position: glam::vec3(-1.0, 1.0, 1.0),
+        position: glam::vec4(-1.0, 1.0, 1.0, 1.0),
+        normal: glam::vec3(0.0, 0.0, 0.0),
         color: glam::vec3(0.0, 1.0, 0.0),
         uv: glam::vec2(0.0, 0.0),
     };
     let vertex2 = Vertex {
-        position: glam::vec3(1.0, 1.0, 1.0),
+        position: glam::vec4(1.0, 1.0, 1.0, 1.0),
+        normal: glam::vec3(0.0, 0.0, 0.0),
         color: glam::vec3(0.0, 0.0, 1.0),
         uv: glam::vec2(1.0, 0.0),
     };
     let vertex3 = Vertex {
-        position: glam::vec3(1.0, -1.0, 1.0),
+        position: glam::vec4(1.0, -1.0, 1.0, 1.0),
+        normal: glam::vec3(0.0, 0.0, 0.0),
         color: glam::vec3(0.0, 1.0, 1.0),
         uv: glam::vec2(1.0, 1.0),
     };
@@ -174,12 +178,12 @@ fn main() {
         let view = camera.view();
         let proj = camera.projection();
         
-        raster_mesh(&mesh, &(proj * view * parent_local * transform0.local()),Some(&texture), &mut buffer, &mut z_buffer, window_size, &rendering_type);
-        raster_mesh(&mesh, &(proj * view * parent_local * transform1.local()), Some(&texture), &mut buffer, &mut z_buffer, window_size, &rendering_type);
-        raster_mesh(&mesh, &(proj * view * parent_local * transform2.local()), Some(&texture), &mut buffer, &mut z_buffer, window_size, &rendering_type);
-        raster_mesh(&mesh, &(proj * view * parent_local * transform3.local()), Some(&texture), &mut buffer, &mut z_buffer, window_size, &rendering_type);
-        raster_mesh(&mesh, &(proj * view * parent_local * transform4.local()), Some(&texture), &mut buffer, &mut z_buffer, window_size, &rendering_type);
-        raster_mesh(&mesh, &(proj * view * parent_local * transform5.local()), Some(&texture), &mut buffer, &mut z_buffer, window_size, &rendering_type);
+        raster_mesh(&mesh, &parent_local, &(proj * view * parent_local * transform0.local()),Some(&texture), &mut buffer, &mut z_buffer, window_size, &rendering_type);
+        raster_mesh(&mesh, &parent_local, &(proj * view * parent_local * transform1.local()), Some(&texture), &mut buffer, &mut z_buffer, window_size, &rendering_type);
+        raster_mesh(&mesh, &parent_local, &(proj * view * parent_local * transform2.local()), Some(&texture), &mut buffer, &mut z_buffer, window_size, &rendering_type);
+        raster_mesh(&mesh, &parent_local, &(proj * view * parent_local * transform3.local()), Some(&texture), &mut buffer, &mut z_buffer, window_size, &rendering_type);
+        raster_mesh(&mesh, &parent_local, &(proj * view * parent_local * transform4.local()), Some(&texture), &mut buffer, &mut z_buffer, window_size, &rendering_type);
+        raster_mesh(&mesh, &parent_local, &(proj * view * parent_local * transform5.local()), Some(&texture), &mut buffer, &mut z_buffer, window_size, &rendering_type);
         rot += 0.6 * delta_time;
 
         // We unwrap here as we want this code to exit if it fails. Real applications may want to handle this in a different way
