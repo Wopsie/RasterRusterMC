@@ -1,7 +1,5 @@
-use geometry::Mesh;
 use glam::{Vec2, Vec3Swizzles, Mat4, Vec4, Vec4Swizzles, Vec3};
-use gltf::json::material::AlphaCutoff;
-
+use std::path::Path;
 //pub mod files. Important because this exposes these modules from other files to whoever uses lib.rs
 pub mod geometry;
 pub mod texture;
@@ -64,24 +62,24 @@ mod tests {
     }
 }
 
-pub fn Raster_Clipped_Triangle(tri: &Triangle, buffer: &mut Vec<u32>, texture: Option<&Texture>, z_buffer: &mut Vec<f32>, viewport_size: Vec2, rtype: &RenderType)
+pub fn Raster_Clipped_Triangle(
+    tri: &Triangle, 
+    buffer: &mut Vec<u32>, 
+    texture: Option<&Texture>, 
+    z_buffer: &mut Vec<f32>, 
+    viewport_size: Vec2, 
+    rtype: &RenderType)
 {
-    //let mvp = *projection * *view * *model; //multiplied from right to left
-
-    //let clip0 = *mvp * Vec4::from((tri.vert0.position, 1.0));
-    //let clip1 = *mvp * Vec4::from((tri.vert1.position, 1.0));
-    //let clip2 = *mvp * Vec4::from((tri.vert2.position, 1.0));
-    
     let rec0 = 1.0 / tri.vert0.position.w;
-    let rec1 = 1.0 / tri.vert0.position.w;
-    let rec2 = 1.0 / tri.vert0.position.w;
+    let rec1 = 1.0 / tri.vert1.position.w;
+    let rec2 = 1.0 / tri.vert2.position.w;
 
     //Normalized Device Coordinates
     //perform perspective division to transform in ndc. xyz components of ndc are now between -1 and 1 (if within frustum)
     //normally the output of the vertex shader 
     let ndc0 = tri.vert0.position * rec0; //since clip.w is -1 to 1, map clip space coords to -1/1
-    let ndc1 = tri.vert0.position * rec1;
-    let ndc2 = tri.vert0.position * rec2;
+    let ndc1 = tri.vert1.position * rec1;
+    let ndc2 = tri.vert2.position * rec2;
 
     let v0 = tri.vert0 * rec0;
     let v1 = tri.vert1 * rec1;
@@ -312,36 +310,6 @@ pub fn clip_cull_triangle(tri: &Triangle) -> ClipResult {
     }
 }
 
-// pub fn Render_Depth(tri: Triangle, buffer: &mut Vec<u32>, z_buffer: &mut Vec<f32>)
-// {
-//     for (i, pixel) in buffer.iter_mut().enumerate() 
-//     {
-//         let coords = index_to_coords(i, 500);
-//         let coords = glam::vec2(coords.0 as f32, coords.1 as f32);
-
-//         let area = edge_function(
-//             tri.vert0.position.xy(), 
-//             tri.vert1.position.xy(), 
-//             tri.vert2.position.xy(),
-//         );
-
-//         if let Some(bary) = Barycentric_Coordinates(
-//             coords,
-//             tri.vert0.position.xy(),
-//             tri.vert1.position.xy(),
-//             tri.vert2.position.xy(),
-//             area,
-//         ) {
-//             let depth = bary.x * tri.vert0.position.z + bary.y * tri.vert1.position.z + bary.z * tri.vert2.position.z;
-//             if depth < z_buffer[i] {
-//                 z_buffer[i] = depth;
-//                 *pixel = (-depth * 255.0) as u32; //write to buffer
-//             }
-            
-//         }
-//     }
-// }
-
 pub fn raster_mesh(
     mesh: &Mesh,
     loc_mat: &Mat4,
@@ -387,4 +355,33 @@ pub fn triangle_screen_bounding_box(
             bot,
         })
     }
+}
+
+pub fn load_gltf(path: &Path) -> Mesh {
+    let (document, buffers, _images) = gltf::import(path).unwrap();
+
+    for scene in document.scenes() {
+        for node in scene.nodes() {
+            println!(
+                "Node #{} has {} children, camera: {:?}, mesh: {:?}, transform: {:?}",
+                node.index(),
+                node.children().count(),
+                node.camera(),
+                node.mesh().is_some(),
+                node.transform(),
+            );
+            println!(
+                "Node #{} has transform: trans {:?}, rot {:?}, scale {:?},",
+                node.index(),
+                node.transform().decomposed().0,
+                node.transform().decomposed().1,
+                node.transform().decomposed().2,
+            );
+            if let Some(mesh) = node.mesh() {
+                return Mesh::load_from_gltf(&mesh, &buffers); //why does this need an explicit return statement?
+            }
+        }
+    }
+
+    Mesh::new()
 }
