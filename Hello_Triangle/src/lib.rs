@@ -15,6 +15,12 @@ pub use {
     camera::Camera,
     utils::*};
 
+pub enum RenderType{
+    Std,
+    Depth,
+    Wireframe,
+}
+
 #[cfg(test)] //unit tests in Rust
 mod tests {
     use crate::geometry::Vertex;
@@ -49,7 +55,7 @@ mod tests {
     }
 }
 
-pub fn Raster_Triangle(tri: Triangle, mvp: &Mat4, buffer: &mut Vec<u32>, texture: Option<&Texture>, z_buffer: &mut Vec<f32>, viewport_size: Vec2)
+pub fn Raster_Triangle(tri: Triangle, mvp: &Mat4, buffer: &mut Vec<u32>, texture: Option<&Texture>, z_buffer: &mut Vec<f32>, viewport_size: Vec2, rtype: &RenderType)
 {
     //let mvp = *projection * *view * *model; //multiplied from right to left
 
@@ -119,6 +125,15 @@ pub fn Raster_Triangle(tri: Triangle, mvp: &Mat4, buffer: &mut Vec<u32>, texture
                     color = tex.argb_at_uv(texCoords.x, texCoords.y);
                 }
                 
+                if let RenderType::Depth = rtype {
+                    color = to_argb8(
+                        255,
+                        (depth * 255.0) as u8,
+                        (depth * 255.0) as u8,
+                        (depth * 255.0) as u8,
+                    );
+                }
+
                 *pixel = color; //write to buffer
             }
         }
@@ -150,12 +165,7 @@ pub fn Render_Depth(tri: Triangle, buffer: &mut Vec<u32>, z_buffer: &mut Vec<f32
                 z_buffer[i] = depth;
                 *pixel = (-depth * 255.0) as u32; //write to buffer
             }
-            // color = to_argb8(
-                //     255,
-                //     (depth * 255.0) as u8,
-                //     (depth * 255.0) as u8,
-                //     (depth * 255.0) as u8,
-                // );
+            
         }
     }
 }
@@ -190,6 +200,7 @@ pub fn raster_mesh(
     buffer: &mut Vec<u32>,
     z_buffer: &mut Vec<f32>,
     viewport_size: Vec2,
+    render_type: &RenderType,
 ) {
     for tri in mesh.triangles() {
         let vertices = mesh.get_vertices_from_triangle(*tri);
@@ -200,6 +211,6 @@ pub fn raster_mesh(
             vert2: *vertices[2],
         };
 
-        Raster_Triangle(tempTri, mvp, buffer, texture, z_buffer, viewport_size)
+        Raster_Triangle(tempTri, mvp, buffer, texture, z_buffer, viewport_size, render_type)
     }
 }

@@ -33,13 +33,15 @@ fn main() {
     let mut buffer: Vec<u32> = vec![to_argb8(255, 0, 0, 0); WIDTH * HEIGHT];
     let mut z_buffer = vec![f32::INFINITY; WIDTH * HEIGHT];
     
+    let mut rendering_type = RenderType::Std;
+
     let window_size = glam::vec2(WIDTH as f32, HEIGHT as f32);
 
     let aspect_ratio = WIDTH as f32 / HEIGHT as f32;
     let mut camera = Camera {
         aspect_ratio,
         transform: Transform::from_translation(glam::vec3(0.0, 0.0, 0.0)),
-        frustum_far: 1000.0,
+        frustum_far: 100.0,
         ..Default::default()
     };
 
@@ -112,6 +114,8 @@ fn main() {
     let mut pos = glam::Vec3::new(0.0, 0.0, 8.0);
     let mut cam_rot = 0.0;
 
+    let mut standard_rendering = true;
+
     let time_tracker = Instant::now();
     let mut last : u128 = 0;
     let mut now: u128 = 0;
@@ -145,6 +149,15 @@ fn main() {
         //println!("{:?}", &pos);
         //println!("{:?}", &camera.transform.forward());
 
+        if(window.is_key_down(Key::Space)){
+            standard_rendering = false;
+            rendering_type = RenderType::Depth;
+        }else {
+            standard_rendering = true;
+            rendering_type = RenderType::Std;
+        }
+
+
         if(window.is_key_down(Key::Up)){
             pos.z -= 3.0 * delta_time;
         }
@@ -171,12 +184,12 @@ fn main() {
         let view = camera.view();
         let proj = camera.projection();
         
-        raster_mesh(&mesh, &(proj * view * parent_local * transform0.local()),Some(&texture), &mut buffer, &mut z_buffer, window_size);
-        raster_mesh(&mesh, &(proj * view * parent_local * transform1.local()), Some(&texture), &mut buffer, &mut z_buffer, window_size);
-        raster_mesh(&mesh, &(proj * view * parent_local * transform2.local()), Some(&texture), &mut buffer, &mut z_buffer, window_size);
-        raster_mesh(&mesh, &(proj * view * parent_local * transform3.local()), Some(&texture), &mut buffer, &mut z_buffer, window_size);
-        raster_mesh(&mesh, &(proj * view * parent_local * transform4.local()), Some(&texture), &mut buffer, &mut z_buffer, window_size);
-        raster_mesh(&mesh, &(proj * view * parent_local * transform5.local()), Some(&texture), &mut buffer, &mut z_buffer, window_size);
+        raster_mesh(&mesh, &(proj * view * parent_local * transform0.local()),Some(&texture), &mut buffer, &mut z_buffer, window_size, &rendering_type);
+        raster_mesh(&mesh, &(proj * view * parent_local * transform1.local()), Some(&texture), &mut buffer, &mut z_buffer, window_size, &rendering_type);
+        raster_mesh(&mesh, &(proj * view * parent_local * transform2.local()), Some(&texture), &mut buffer, &mut z_buffer, window_size, &rendering_type);
+        raster_mesh(&mesh, &(proj * view * parent_local * transform3.local()), Some(&texture), &mut buffer, &mut z_buffer, window_size, &rendering_type);
+        raster_mesh(&mesh, &(proj * view * parent_local * transform4.local()), Some(&texture), &mut buffer, &mut z_buffer, window_size, &rendering_type);
+        raster_mesh(&mesh, &(proj * view * parent_local * transform5.local()), Some(&texture), &mut buffer, &mut z_buffer, window_size, &rendering_type);
         rot += 0.05;
 
         // We unwrap here as we want this code to exit if it fails. Real applications may want to handle this in a different way
