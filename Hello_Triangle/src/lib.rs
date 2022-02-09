@@ -49,13 +49,13 @@ mod tests {
     }
 }
 
-pub fn Raster_Triangle(tri: Triangle, model: &Mat4, view: &Mat4, projection: &Mat4, buffer: &mut Vec<u32>, texture: Option<&Texture>, z_buffer: &mut Vec<f32>, viewport_size: Vec2)
+pub fn Raster_Triangle(tri: Triangle, mvp: &Mat4, buffer: &mut Vec<u32>, texture: Option<&Texture>, z_buffer: &mut Vec<f32>, viewport_size: Vec2)
 {
-    let mvp = *projection * *view * *model; //multiplied from right to left
+    //let mvp = *projection * *view * *model; //multiplied from right to left
 
-    let clip0 = mvp * Vec4::from((tri.vert0.position, 1.0));
-    let clip1 = mvp * Vec4::from((tri.vert1.position, 1.0));
-    let clip2 = mvp * Vec4::from((tri.vert2.position, 1.0));
+    let clip0 = *mvp * Vec4::from((tri.vert0.position, 1.0));
+    let clip1 = *mvp * Vec4::from((tri.vert1.position, 1.0));
+    let clip2 = *mvp * Vec4::from((tri.vert2.position, 1.0));
     
     let rec0 = 1.0 / clip0.w;
     let rec1 = 1.0 / clip1.w;
@@ -185,9 +185,7 @@ pub fn Funky_Triangle(tri: Triangle, buffer: &mut Vec<u32>)
 
 pub fn raster_mesh(
     mesh: &Mesh,
-    model_mat: &Mat4,
-    view_mat: &Mat4,
-    projection_mat: &Mat4,
+    mvp: &Mat4,
     texture: Option<&Texture>,
     buffer: &mut Vec<u32>,
     z_buffer: &mut Vec<f32>,
@@ -202,6 +200,6 @@ pub fn raster_mesh(
             vert2: *vertices[2],
         };
 
-        Raster_Triangle(tempTri, model_mat, view_mat, projection_mat, buffer, texture, z_buffer, viewport_size)
+        Raster_Triangle(tempTri, mvp, buffer, texture, z_buffer, viewport_size)
     }
 }
