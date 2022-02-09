@@ -1,6 +1,27 @@
 use glam::{Vec2, Vec3, UVec3};
 use std::{ops::{Add, Mul, Sub, MulAssign, AddAssign}, f32::MIN_POSITIVE};
 
+pub struct BoundingBox2D {
+    pub left: f32,
+    pub right: f32,
+    pub top: f32,
+    pub bot: f32,
+}
+
+pub fn get_triangle_bounding_box_2d(tri: &[Vec2; 3]) -> BoundingBox2D {
+    let left = tri[0].x.min(tri[1].x).min(tri[2].x);
+    let right = tri[0].x.max(tri[1].x).max(tri[2].x);
+    let top = tri[0].y.min(tri[1].y).min(tri[2].y);
+    let bot = tri[0].y.max(tri[1].y).max(tri[2].y);
+
+    BoundingBox2D {
+        left,
+        right,
+        top,
+        bot,
+    }
+}
+
 pub struct Point {
     pub x: i32,
     pub y: i32,

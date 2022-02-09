@@ -8,8 +8,7 @@ pub mod utils;
 pub mod transform;
 pub mod camera;
 pub use {
-    geometry::Vertex, 
-    geometry::Triangle, 
+    geometry::*, 
     texture::Texture, 
     transform::Transform, 
     camera::Camera,
@@ -18,6 +17,7 @@ pub use {
 pub enum RenderType{
     Std,
     Depth,
+    ClipDebug,
     Wireframe,
 }
 
@@ -55,7 +55,7 @@ mod tests {
     }
 }
 
-pub fn Raster_Triangle(tri: Triangle, mvp: &Mat4, buffer: &mut Vec<u32>, texture: Option<&Texture>, z_buffer: &mut Vec<f32>, viewport_size: Vec2, rtype: &RenderType)
+pub fn Raster_Triangle(tri: &Triangle, mvp: &Mat4, buffer: &mut Vec<u32>, texture: Option<&Texture>, z_buffer: &mut Vec<f32>, viewport_size: Vec2, rtype: &RenderType)
 {
     //let mvp = *projection * *view * *model; //multiplied from right to left
 
@@ -94,47 +94,49 @@ pub fn Raster_Triangle(tri: Triangle, mvp: &Mat4, buffer: &mut Vec<u32>, texture
         map_to_range(-ndc2.y, -1.0, 1.0, 0.0, viewport_size.y),
     );
 
-    for (i, pixel) in buffer.iter_mut().enumerate() 
-    {
-        let coords = index_to_coords(i, viewport_size.y as usize);
-        //shadowing a variable
-        let coords = glam::vec2(coords.0 as f32, coords.1 as f32) + 0.5;
-        let area = edge_function(sc0, sc1, sc2);
+    if let Some(bb) = triangle_screen_bounding_box(&[sc0, sc1, sc2], viewport_size) {
+        for y in (bb.top as usize)..=bb.bot as usize {
+            for x in (bb.left as usize)..=bb.right as usize {
+                let coords = glam::vec2(x as f32, y as f32) + 0.5;
+                let pixel_id = coords_to_index(x, y, viewport_size.x as usize);
+                let area = edge_function(sc0, sc1, sc2);
 
-        if let Some(bary) = Barycentric_Coordinates(coords,sc0,sc1,sc2, area) {
-            // bary var presumably contains barycentric coordinates of the given coords on the given triangle
-            let correction = bary.x * rec0 + bary.y * rec1 + bary.z * rec2;
-            let depth = correction;
-            let correction = 1.0 / correction;
+                if let Some(bary) = Barycentric_Coordinates(coords,sc0,sc1,sc2, area) {
+                    let correction = bary.x * rec0 + bary.y * rec1 + bary.z * rec2;
+                    let correction = 1.0 / correction;
+                    let depth = bary.x * ndc0.z + bary.y * ndc1.z + bary.z * ndc2.z;
+                    if depth < z_buffer[pixel_id] {
+                        z_buffer[pixel_id] = depth;
 
-            if depth < z_buffer[i] {
-                z_buffer[i] = depth;
-                
-                let color = bary.x * v0.color + bary.y * v1.color + bary.z * v2.color;
-                let color = color * correction;
-                let mut color = to_argb8(
-                    255, 
-                    (color.x * 255.0) as u8,
-                    (color.y * 255.0) as u8,
-                    (color.z * 255.0) as u8,
-                );
 
-                if let Some(tex) = texture {
-                    let texCoords = bary.x * v0.uv + bary.y * v1.uv + bary.z * v2.uv;
-                    let texCoords = texCoords * correction;
-                    color = tex.argb_at_uv(texCoords.x, texCoords.y);
-                }
-                
-                if let RenderType::Depth = rtype {
-                    color = to_argb8(
-                        255,
-                        (depth * 255.0) as u8,
-                        (depth * 255.0) as u8,
-                        (depth * 255.0) as u8,
-                    );
-                }
+                        let color = bary.x * v0.color + bary.y * v1.color + bary.z * v2.color;
+                        let color = color * correction;
+                        let mut color = to_argb8(
+                            255, 
+                            (color.x * 255.0) as u8,
+                            (color.y * 255.0) as u8,
+                            (color.z * 255.0) as u8,
+                        );
 
-                *pixel = color; //write to buffer
+                        if let Some(tex) = texture {
+                            let texCoords = bary.x * v0.uv + bary.y * v1.uv + bary.z * v2.uv;
+                            let texCoords = texCoords * correction;
+                            color = tex.argb_at_uv(texCoords.x, texCoords.y);
+                        }
+                        
+                        if let RenderType::Depth = rtype {
+                            color = to_argb8(
+                                255,
+                                (depth * 255.0) as u8,
+                                (depth * 255.0) as u8,
+                                (depth * 255.0) as u8,
+                            );
+                        }
+
+                        buffer[pixel_id] = color; //write to buffer
+                    }
+
+                }   
             }
         }
     }
@@ -170,29 +172,6 @@ pub fn Render_Depth(tri: Triangle, buffer: &mut Vec<u32>, z_buffer: &mut Vec<f32
     }
 }
 
-pub fn Funky_Triangle(tri: Triangle, buffer: &mut Vec<u32>)
-{
-    let mut m0 : f32 = 0.0;
-    let mut m1 : f32 = 0.0;
-    let mut m2 : f32 = 0.0;
-
-    for (i, pixel) in buffer.iter_mut().enumerate() 
-    {
-        let coords = index_to_coords(i, 500);
-        let coords = glam::vec2(coords.0 as f32, coords.1 as f32);
-        m0 = edge_function(tri.vert0.position.xy(), tri.vert1.position.xy(), coords);
-        m1 = edge_function(tri.vert1.position.xy(), tri.vert2.position.xy(), coords);
-        m2 = edge_function(tri.vert2.position.xy(), tri.vert0.position.xy(), coords);
-
-        *pixel = to_argb8(
-            255, 
-            (m2*255.0) as u8, 
-            (m0*255.0) as u8, 
-            (m1*255.0) as u8,
-        );
-    }
-}
-
 pub fn raster_mesh(
     mesh: &Mesh,
     mvp: &Mat4,
@@ -205,12 +184,36 @@ pub fn raster_mesh(
     for tri in mesh.triangles() {
         let vertices = mesh.get_vertices_from_triangle(*tri);
 
-        let tempTri = Triangle {    //what the fuck?
+        let tempTri = &Triangle {    //what the fuck?
             vert0: *vertices[0],
             vert1: *vertices[1],
             vert2: *vertices[2],
         };
 
         Raster_Triangle(tempTri, mvp, buffer, texture, z_buffer, viewport_size, render_type)
+    }
+}
+
+pub fn triangle_screen_bounding_box(
+    tri: &[Vec2; 3], //not triangle struct because this should be used with screen coordinates
+    viewport_size: Vec2,
+) -> Option<BoundingBox2D> {
+    let bb = get_triangle_bounding_box_2d(tri);
+
+    //just AABB
+    if bb.left >= viewport_size.x || bb.right < 0.0 || bb.bot >= viewport_size.y || bb.top < 0.0 {
+        None
+    } else {
+        let left = bb.left.max(0.0);
+        let right = bb.right.min(viewport_size.x - 1.0);
+        let top = bb.top.min(viewport_size.y - 1.0);
+        let bot = bb.bot.max(0.0);
+
+        Some(BoundingBox2D {
+            left,
+            right,
+            top,
+            bot,
+        })
     }
 }

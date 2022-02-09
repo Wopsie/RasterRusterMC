@@ -1,4 +1,5 @@
 extern crate minifb;
+use std::os::windows;
 use std::time::Instant;
 use std::vec;
 use std::path::Path;
@@ -38,9 +39,10 @@ fn main() {
     let window_size = glam::vec2(WIDTH as f32, HEIGHT as f32);
 
     let aspect_ratio = WIDTH as f32 / HEIGHT as f32;
+    
     let mut camera = Camera {
         aspect_ratio,
-        transform: Transform::from_translation(glam::vec3(0.0, 0.0, 0.0)),
+        transform: Transform::from_translation(glam::vec3(0.0, 0.0, 8.0)),
         frustum_far: 100.0,
         ..Default::default()
     };
@@ -111,7 +113,7 @@ fn main() {
         0.0,
     ));
 
-    let mut pos = glam::Vec3::new(0.0, 0.0, 8.0);
+    //let mut pos = glam::Vec3::new(0.0, 0.0, 8.0);
     let mut cam_rot = 0.0;
 
     let mut standard_rendering = true;
@@ -143,8 +145,7 @@ fn main() {
         clear_buffer(&mut z_buffer, f32::INFINITY);
         
         //camera.transform = Transform::from_translation(pos);
-        camera.transform = Transform::from_translation_rotation(pos, 
-            glam::Quat::from_euler(glam::EulerRot::XYZ, 0.0, cam_rot, 0.0));
+        camera.transform = Transform::from_translation_rotation(camera.transform.translation, glam::Quat::from_euler(glam::EulerRot::XYZ, 0.0, cam_rot, 0.0));
         //let mut pos = glam::Vec3(0.0, 0.0, 0.0);
         //println!("{:?}", &pos);
         //println!("{:?}", &camera.transform.forward());
@@ -157,19 +158,8 @@ fn main() {
             rendering_type = RenderType::Std;
         }
 
+        camera_input(&window, &mut camera, &delta_time);
 
-        if(window.is_key_down(Key::Up)){
-            pos.z -= 3.0 * delta_time;
-        }
-        if(window.is_key_down(Key::Down)){
-            pos.z += 3.0 * delta_time;
-        }
-        if(window.is_key_down(Key::Left)){
-            pos.x -= 3.0 * delta_time;
-        }
-        if(window.is_key_down(Key::Right)){
-            pos.x += 3.0 * delta_time;
-        }
         if(window.is_key_down(Key::A)){
             cam_rot += 0.5 * delta_time;
         }
@@ -190,7 +180,7 @@ fn main() {
         raster_mesh(&mesh, &(proj * view * parent_local * transform3.local()), Some(&texture), &mut buffer, &mut z_buffer, window_size, &rendering_type);
         raster_mesh(&mesh, &(proj * view * parent_local * transform4.local()), Some(&texture), &mut buffer, &mut z_buffer, window_size, &rendering_type);
         raster_mesh(&mesh, &(proj * view * parent_local * transform5.local()), Some(&texture), &mut buffer, &mut z_buffer, window_size, &rendering_type);
-        rot += 0.05;
+        rot += 0.6 * delta_time;
 
         // We unwrap here as we want this code to exit if it fails. Real applications may want to handle this in a different way
         window.update_with_buffer(&buffer, WIDTH, HEIGHT).unwrap();
@@ -203,4 +193,40 @@ fn main() {
     //     //dbg!("Debugging m values: {0: <10} | {0: <10} | {0: <10}", m0, m1, m2);
     // }
 
+}
+
+pub fn camera_input(window: &Window, camera: &mut Camera, delta_time: &f32) {
+    let mut translate_axis = glam::vec3(0.0, 0.0, 0.0);
+    let mut rotate_euler = glam::vec3(0.0, 0.0, 0.0);
+
+    if(window.is_key_down(Key::Up)){
+        translate_axis.z += 3.0 * *delta_time;
+    }
+    if(window.is_key_down(Key::Down)){
+        translate_axis.z -= 3.0 * *delta_time;
+        //pos.z += 3.0 * delta_time;
+    }
+    if(window.is_key_down(Key::Left)){
+        translate_axis.x -= 3.0 * *delta_time;
+        //pos.x -= 3.0 * delta_time;
+    }
+    if(window.is_key_down(Key::Right)){
+        translate_axis.x += 3.0 * *delta_time;
+        //pos.x += 3.0 * delta_time;
+    }
+    //if(window.is_key_down(Key::A)){
+    //    //cam_rot += 0.5 * delta_time;
+    //    rotate_euler += 0.5 * *delta_time;
+    //}
+    //if(window.is_key_down(Key::D)){
+    //    //cam_rot -= 0.5 * delta_time;
+    //    rotate_euler -= 0.5 * *delta_time;
+    //}
+
+    camera.transform.translation += 
+        (camera.transform.right() * camera.speed * translate_axis.x + 
+        camera.transform.forward() * camera.speed * translate_axis.z +
+        camera.transform.up() * camera.speed * translate_axis.y) * *delta_time;
+
+    //camera.transform.rotation += glam::Quat(glam::EulerRot::XYZ, rotate_euler.x, rotate_euler.y, rotate_euler.z);
 }
