@@ -1,5 +1,5 @@
 use glam::{Vec2, Vec3Swizzles, Mat4, Vec4, Vec4Swizzles, Vec3};
-use std::path::Path;
+use std::{path::Path, thread};
 //pub mod files. Important because this exposes these modules from other files to whoever uses lib.rs
 pub mod geometry;
 pub mod texture;
@@ -102,6 +102,13 @@ pub fn Raster_Clipped_Triangle(
     );
 
     if let Some(bb) = triangle_screen_bounding_box(&[sc0, sc1, sc2], viewport_size) {
+
+        //spawn threads here? every x and y % 32 == 0
+
+        // let handle = thread::spawn(|| {
+        //     //
+        // });
+
         for y in (bb.top as usize)..=bb.bot as usize {
             for x in (bb.left as usize)..=bb.right as usize {
                 let coords = glam::vec2(x as f32, y as f32) + 0.5;
@@ -328,6 +335,8 @@ pub fn raster_mesh(
 ) {
     for tri in mesh.triangles() {
         let vertices = mesh.get_vertices_from_triangle(*tri);
+
+        //AABB on vertices to sort into tiles
 
         let tempTri = &Triangle {    //what the fuck?
             vert0: *vertices[0],

@@ -1,5 +1,5 @@
 use glam::{Mat4, UVec3, Vec2, Vec3, Vec4, Vec4Swizzles};
-use std::{ops::{Add, Mul, Sub, MulAssign, AddAssign}};
+use std::ops::{Add, AddAssign, Mul, MulAssign, Sub};
 
 pub struct BoundingBox2D {
     pub left: f32,
@@ -37,13 +37,12 @@ pub struct Vertex {
 }
 
 //implementation, bind functions to Vertex data struct
-impl Vertex 
-{
+impl Vertex {
     //return self, like a constructor kindof
-    pub fn Construct(position: Vec4, normal: Vec3, color: Vec3, uv: Vec2) -> Self{
+    pub fn Construct(position: Vec4, normal: Vec3, color: Vec3, uv: Vec2) -> Self {
         Self {
             position,
-            normal, 
+            normal,
             color,
             uv,
         }
@@ -77,26 +76,24 @@ impl Add for Vertex {
 impl Sub for Vertex {
     type Output = Self;
 
-    fn sub(self, rhs: Self) -> Self{
+    fn sub(self, rhs: Self) -> Self {
         let position = self.position - rhs.position;
         let normal = self.normal - rhs.normal;
         let color = self.color - rhs.color;
         let uv = self.uv - rhs.uv;
         Self::Construct(position, normal, color, uv)
-
     }
 }
 
-impl Mul<f32> for Vertex{
+impl Mul<f32> for Vertex {
     type Output = Self;
-    
-    fn mul(self, rhs: f32) -> Self{
+
+    fn mul(self, rhs: f32) -> Self {
         let position = self.position * rhs;
         let normal = self.normal * rhs;
         let color = self.color * rhs;
         let uv = self.uv * rhs;
         Self::Construct(position, normal, color, uv)
-
     }
 }
 
@@ -129,15 +126,15 @@ impl Mesh {
     }
 
     pub fn vertices(&self) -> &Vec<Vertex> {
-        &self.vertices  //vertex buffer
+        &self.vertices //vertex buffer
     }
-    
+
     pub fn get_vertices_from_triangle(&self, triangle: UVec3) -> [&Vertex; 3] {
         [
             &self.vertices[triangle.x as usize],
             &self.vertices[triangle.y as usize],
             &self.vertices[triangle.z as usize],
-        ]   //return triangle as array of vertices
+        ] //return triangle as array of vertices
     }
 
     pub fn from_vertices(triangles: &[UVec3], vertices: &[Vertex]) -> Self {
@@ -152,9 +149,9 @@ impl Mesh {
         self.triangles.extend_from_slice(&triangles);
         self.vertices.extend_from_slice(vertices);
     }
-    
+
     pub fn add_section_from_buffers(
-        &mut self, 
+        &mut self,
         triangles: &[UVec3],
         positions: &[Vec3],
         normals: &[Vec3],
@@ -257,11 +254,10 @@ pub enum VerticesOrder {
     CBA,
 }
 
-impl Triangle 
-{
-    pub fn Construct(v0: Vertex, v1: Vertex, v2: Vertex) -> Self    //construct because I cling to the past and have trouble letting go...
+impl Triangle {
+    pub fn Construct(v0: Vertex, v1: Vertex, v2: Vertex) -> Self //construct because I cling to the past and have trouble letting go...
     {
-        Self{
+        Self {
             vert0: v0,
             vert1: v1,
             vert2: v2,
@@ -269,7 +265,6 @@ impl Triangle
     }
 
     pub fn transform(&self, matrix: &Mat4) -> Self {
-
         let p0 = *matrix * self.vert0.position.xyz().extend(1.0);
         let p1 = *matrix * self.vert1.position.xyz().extend(1.0);
         let p2 = *matrix * self.vert2.position.xyz().extend(1.0);
@@ -294,7 +289,6 @@ impl Triangle
         }
     }
 }
-
 
 impl Default for Triangle {
     fn default() -> Self {

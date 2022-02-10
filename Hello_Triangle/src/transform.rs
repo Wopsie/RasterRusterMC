@@ -14,8 +14,7 @@ impl Transform {
         scale: Vec3::ONE,
     };
 
-    pub fn new(translation: Vec3, rotation: Quat, scale: Vec3) -> Self 
-    {
+    pub fn new(translation: Vec3, rotation: Quat, scale: Vec3) -> Self {
         Self {
             translation,
             rotation: rotation.normalize(),
@@ -24,7 +23,7 @@ impl Transform {
     }
 
     pub fn local(&self) -> Mat4 {
-        Mat4::from_translation(self.translation) 
+        Mat4::from_translation(self.translation)
             * Mat4::from_quat(self.rotation)
             * Mat4::from_scale(self.scale)
     }
@@ -56,13 +55,13 @@ impl Transform {
     pub fn right(&self) -> Vec3 {
         self.rotation * Vec3::X
     }
-    
+
     pub fn up(&self) -> Vec3 {
         self.rotation * Vec3::Y
     }
 
     pub fn forward(&self) -> Vec3 {
-        self.rotation * -Vec3::Z    //account for flipping of Z axis? 
+        self.rotation * -Vec3::Z //account for flipping of Z axis?
     }
 
     // impl Into<Mat4> for Transform {  //prefered to implement From for Transform instead, but can be nice to explicitness

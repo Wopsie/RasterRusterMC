@@ -1,5 +1,7 @@
-use glam::{Vec2, Vec3, Mat4};
-use crate::{geometry::Point};
+use std::thread::JoinHandle;
+
+use crate::geometry::Point;
+use glam::{Mat4, Vec2, Vec3};
 
 pub fn Barycentric_Coordinates(
     point: Vec2,
@@ -20,8 +22,9 @@ pub fn Barycentric_Coordinates(
     }
 }
 
-pub fn Lerp<T>(start: T, end: T, alpha: f32) -> T 
-where //wtf?
+pub fn Lerp<T>(start: T, end: T, alpha: f32) -> T
+where
+    //wtf?
     T: std::ops::Sub<Output = T>
         + std::ops::Mul<f32, Output = T>
         + std::ops::Add<Output = T>
@@ -72,13 +75,14 @@ where
 }
 
 pub fn map_to_range<T>(v: T, a1: T, a2: T, b1: T, b2: T) -> T
-where //"where" is used to require generic type "T" to have implemented various operators and rust Traits
+where
+    //"where" is used to require generic type "T" to have implemented various operators and rust Traits
     T: std::ops::Sub<Output = T>
         + std::ops::Div<Output = T>
         + std::ops::Mul<Output = T>
         + std::ops::Add<Output = T>
         + Copy,
-{    
+{
     b1 + (v - a1) * (b2 - b1) / (a2 - a1)
 }
 
@@ -98,31 +102,28 @@ pub fn bresenham_function(vert0: Vec2, vert1: Vec2) -> Vec<Point>
     let deltax: i32 = i32::abs(vert1.x as i32 - vert0.x as i32);
     let deltay: i32 = i32::abs(vert1.y as i32 - vert0.y as i32);
 
-    let stepX: i32 = if vert0.x < vert1.x {1}else{-1};
-    let stepY: i32 = if vert0.y < vert1.y {1}else{-1};
+    let stepX: i32 = if vert0.x < vert1.x { 1 } else { -1 };
+    let stepY: i32 = if vert0.y < vert1.y { 1 } else { -1 };
 
     let mut currX: i32 = vert0.x as i32;
     let mut currY: i32 = vert0.y as i32;
 
-    let mut error = if deltax > deltay {deltax} else {-deltay} /2;
+    let mut error = if deltax > deltay { deltax } else { -deltay } / 2;
 
     loop {
-        coords.push(Point{x: currX, y: currY});
+        coords.push(Point { x: currX, y: currY });
 
-        if currX == vert1.x as i32 && currY == vert1.y as i32
-        {
+        if currX == vert1.x as i32 && currY == vert1.y as i32 {
             break;
         }
 
         let error2: i32 = error;
-        if error2 > -deltax
-        {
+        if error2 > -deltax {
             error -= deltay;
             currX += stepX;
         }
 
-        if error2 < deltay
-        {
+        if error2 < deltay {
             error += deltay;
             currY += stepY;
         }
@@ -168,3 +169,23 @@ pub fn cofactor(matrix: &Mat4) -> Mat4 {
     dst[15] = minor(&src, 0, 1, 2, 0, 1, 2);
     Mat4::from_cols_array(&dst)
 }
+
+// #[derive(Debug, Clone, Copy)]
+// pub struct Tile {
+//     joinHandle: JoinHandle<()>,
+//     coords: (usize, usize),
+// }
+
+// impl Tile {
+//     pub fn new(joinHandle: JoinHandle<()>, coords: (usize, usize)) -> Self {
+//         Self { joinHandle, coords }
+//     }
+//     //something else
+// }
+
+// impl Copy for Tile {
+//     fn Copy(rhs: Self) -> Self {
+//         rhs.joinHandle = self.joinHandle,
+//         rhs.coords = self.coords,
+//     }
+// }

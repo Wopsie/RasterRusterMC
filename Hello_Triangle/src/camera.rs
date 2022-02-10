@@ -15,7 +15,7 @@ impl Default for Camera {
     fn default() -> Self {
         Self {
             frustum_near: 0.1,
-            frustum_far: 100.0, 
+            frustum_far: 100.0,
             fov: std::f32::consts::PI / 4.0,
             aspect_ratio: 1.0,
             transform: Transform::IDENTITY,
@@ -25,7 +25,7 @@ impl Default for Camera {
 }
 
 impl Camera {
-    pub fn projection (&self) -> Mat4 {
+    pub fn projection(&self) -> Mat4 {
         Mat4::perspective_rh(
             self.fov,
             self.aspect_ratio,
@@ -34,7 +34,7 @@ impl Camera {
         )
     }
 
-    pub fn view (&self) -> Mat4 {
+    pub fn view(&self) -> Mat4 {
         Mat4::look_at_rh(
             self.transform.translation,
             self.transform.translation + self.transform.forward(),
